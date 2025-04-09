@@ -73,6 +73,12 @@ const AIResponse: React.FC<AIResponseProps> = ({
     } catch (err: any) {
       console.error('移动端语音合成错误:', err);
       
+      // 删除切换到讯飞TTS的逻辑
+      // 当百度语音合成失败时，直接结束动画
+      console.error('百度语音合成失败，不再尝试其他服务');
+      setIsAnimating(false);
+      
+      /* 删除以下代码
       // 检查是否是API密钥配置问题
       if (err.message && (
         err.message.includes('缺少百度语音API密钥配置') || 
@@ -99,6 +105,7 @@ const AIResponse: React.FC<AIResponseProps> = ({
         console.error('备选语音合成也失败:', fallbackErr);
         setIsAnimating(false);
       }
+      */
     }
   };
 
