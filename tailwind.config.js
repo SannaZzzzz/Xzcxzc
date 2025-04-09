@@ -23,16 +23,47 @@ module.exports = {
         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
         'glow': 'glow 1.5s ease-in-out infinite alternate',
         'float': 'float 6s ease-in-out infinite',
+        'twinkle': 'twinkle 4s infinite',
+        'blink': 'blink 2s infinite alternate',
+        'shoot': 'shoot 4s linear infinite',
+        'rotate': 'rotate 6s linear infinite',
       },
       keyframes: {
         float: {
           '0%, 100%': { transform: 'translateY(0)' },
           '50%': { transform: 'translateY(-10px)' },
         },
+        twinkle: {
+          '0%': { opacity: '0.2' },
+          '50%': { opacity: '1' },
+          '100%': { opacity: '0.2' },
+        },
+        blink: {
+          '0%': { opacity: '0.5' },
+          '100%': { opacity: '1' },
+        },
+        shoot: {
+          '0%': { 
+            transform: 'translateX(0) translateY(0)',
+            opacity: '1',
+          },
+          '100%': { 
+            transform: 'translateX(200px) translateY(200px)',
+            opacity: '0',
+          },
+        },
+        rotate: {
+          '0%': { transform: 'rotate(0deg)' },
+          '100%': { transform: 'rotate(360deg)' },
+        },
       },
       boxShadow: {
         'neon': '0 0 5px rgba(56, 189, 248, 0.5), 0 0 10px rgba(56, 189, 248, 0.3)',
         'neon-hover': '0 0 10px rgba(56, 189, 248, 0.8), 0 0 20px rgba(56, 189, 248, 0.5)',
+        'tech-frame': '0 0 15px rgba(28, 126, 214, 0.4), inset 0 0 8px rgba(28, 126, 214, 0.2)',
+      },
+      backdropFilter: {
+        'tech': 'blur(8px)',
       },
     },
   },

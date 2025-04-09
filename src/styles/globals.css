@@ -9,6 +9,7 @@
   --accent-color: 56, 189, 248;
   --accent-glow: 56, 189, 248, 0.5;
   --neon-border: 0 0 5px rgba(56, 189, 248, 0.5), 0 0 10px rgba(56, 189, 248, 0.3);
+  --tech-blue: 28, 126, 214;
 }
 
 @layer base {
@@ -31,6 +32,16 @@
   
   .glowing-border {
     box-shadow: var(--neon-border);
+  }
+
+  .tech-frame {
+    border: 2px solid rgba(var(--tech-blue), 0.6);
+    border-radius: 8px;
+    box-shadow: 0 0 15px rgba(var(--tech-blue), 0.4), inset 0 0 8px rgba(var(--tech-blue), 0.2);
+    background: rgba(13, 25, 42, 0.4);
+    backdrop-filter: blur(8px);
+    overflow: hidden;
+    position: relative;
   }
 }
 
@@ -62,6 +73,22 @@ body {
   to {
     box-shadow: 0 0 15px rgba(56, 189, 248, 0.8), 0 0 20px rgba(56, 189, 248, 0.5);
   }
+}
+
+.bg-tech-dark {
+  background-color: #0a192f;
+}
+
+.bg-tech-blue {
+  background-color: rgb(var(--tech-blue));
+}
+
+.text-tech-blue {
+  color: #38bdf8;
+}
+
+.shadow-neon {
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.3);
 }
 
 /* 移动端优化 */

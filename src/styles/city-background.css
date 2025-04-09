@@ -1,0 +1,443 @@
+/* 动态城市背景样式 */
+.city-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(180deg, #0a1525 0%, #0d1a2c 100%);
+  z-index: 0;
+  overflow: hidden;
+}
+
+.city-skyline {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 50%;
+  background-image: url('/images/enhanced-city-skyline.svg');
+  background-position: center bottom;
+  background-repeat: repeat-x;
+  background-size: 100% auto;
+  z-index: 1;
+  opacity: 0.8;
+}
+
+/* 广州塔(小蛮腰)样式 */
+.canton-tower {
+  position: absolute;
+  width: 10px;
+  height: 588px; /* 原840px的70% */
+  background: linear-gradient(to bottom, rgba(28, 126, 214, 0.3), rgba(28, 126, 214, 0.7));
+  z-index: 3;
+  border-radius: 5px 5px 2px 2px;
+  box-shadow: 0 0 15px rgba(28, 126, 214, 0.5);
+}
+
+/* 塔身结构 */
+.canton-tower::before {
+  content: '';
+  position: absolute;
+  bottom: 147px; /* 原210px的70% */
+  left: -4px;
+  width: 18px;
+  height: 441px; /* 原630px的70% */
+  background: linear-gradient(to bottom, 
+    rgba(28, 126, 214, 0.1), 
+    rgba(255, 255, 255, 0.15) 10%, 
+    rgba(255, 255, 255, 0.25) 20%, 
+    rgba(255, 255, 255, 0.15) 30%, 
+    rgba(28, 126, 214, 0.2));
+  z-index: 2;
+  border-radius: 6px;
+}
+
+/* 塔顶 */
+.canton-tower::after {
+  content: '';
+  position: absolute;
+  top: 11px; /* 原15px的70%左右 */
+  left: -5px;
+  width: 20px;
+  height: 25px; /* 原35px的70% */
+  background: rgba(28, 126, 214, 0.6);
+  border-radius: 10px 10px 5px 5px;
+  box-shadow: 0 0 10px rgba(28, 126, 214, 0.7);
+}
+
+/* 塔身装饰线条 */
+.canton-tower-decoration {
+  position: absolute;
+  top: 36px; /* 塔顶下方 */
+  left: 0;
+  width: 100%;
+  height: calc(100% - 36px);
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent,
+    transparent 15px,
+    rgba(255, 255, 255, 0.1) 15px,
+    rgba(255, 255, 255, 0.1) 18px
+  );
+  z-index: 4;
+}
+
+/* 观光平台样式 */
+.observation-deck {
+  position: absolute;
+  background-color: rgba(245, 245, 245, 0.9);
+  border-radius: 5px;
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.9);
+  z-index: 3;
+}
+
+/* 广州塔闪烁灯光效果 */
+.tower-light {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  background-color: #ffcc00;
+  border-radius: 50%;
+  box-shadow: 0 0 8px 2px rgba(255, 204, 0, 0.8);
+  animation: twinkle 1.5s infinite alternate;
+  z-index: 5;
+}
+
+/* 前景建筑样式 */
+.foreground-building {
+  position: absolute;
+  background: linear-gradient(to bottom, rgba(28, 126, 214, 0.15), rgba(16, 35, 59, 0.5));
+  z-index: 5;
+  border-radius: 2px 2px 0 0;
+  box-shadow: 0 0 10px rgba(28, 126, 214, 0.2);
+}
+
+.foreground-building::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 5px;
+  background: rgba(28, 126, 214, 0.3);
+  border-radius: 2px 2px 0 0;
+}
+
+.foreground-building::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: repeating-linear-gradient(
+    90deg,
+    transparent,
+    transparent 4px,
+    rgba(28, 126, 214, 0.05) 4px,
+    rgba(28, 126, 214, 0.05) 6px
+  );
+  mix-blend-mode: overlay;
+}
+
+/* 高层建筑样式 */
+.tall-building {
+  position: absolute;
+  bottom: 25%;
+  background: linear-gradient(to bottom, rgba(13, 25, 42, 0.9), rgba(16, 35, 59, 0.8));
+  z-index: 2;
+  border-radius: 2px 2px 0 0;
+  box-shadow: 0 0 10px rgba(28, 126, 214, 0.3);
+}
+
+.tall-building::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 15px;
+  background: rgba(28, 126, 214, 0.6);
+  border-radius: 2px 2px 0 0;
+  box-shadow: 0 0 5px rgba(28, 126, 214, 0.7);
+}
+
+.tall-building::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: repeating-linear-gradient(
+    to right,
+    transparent,
+    transparent 5px,
+    rgba(28, 126, 214, 0.1) 5px,
+    rgba(28, 126, 214, 0.1) 6px
+  );
+}
+
+/* 广州塔旁边的特色高楼 */
+.landmark-building {
+  position: absolute;
+  bottom: 0;
+  background: linear-gradient(to bottom, rgba(16, 37, 65, 0.9), rgba(28, 59, 91, 0.8));
+  z-index: 2;
+  border-radius: 3px 3px 0 0;
+  box-shadow: 0 0 15px rgba(28, 126, 214, 0.4);
+}
+
+.landmark-building::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: 
+    linear-gradient(90deg, 
+      rgba(28, 126, 214, 0.2) 0%, 
+      rgba(28, 126, 214, 0.05) 20%,
+      rgba(28, 126, 214, 0.05) 80%,
+      rgba(28, 126, 214, 0.2) 100%
+    );
+  border-radius: 3px 3px 0 0;
+  z-index: 1;
+}
+
+/* 高楼顶部装饰 */
+.landmark-building-top {
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 10px;
+  height: 18px;
+  background: rgba(28, 126, 214, 0.7);
+  border-radius: 5px 5px 2px 2px;
+  box-shadow: 0 0 10px rgba(28, 126, 214, 0.6);
+  z-index: 3;
+}
+
+/* 高楼窗户样式 */
+.landmark-building-windows {
+  position: absolute;
+  top: 25px;
+  left: 0;
+  width: 100%;
+  height: calc(100% - 25px);
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent,
+    transparent 10px,
+    rgba(64, 156, 255, 0.15) 10px,
+    rgba(64, 156, 255, 0.15) 15px
+  );
+  z-index: 2;
+}
+
+/* 高楼窗户样式 - 增加密度 */
+.landmark-building-windows {
+  position: absolute;
+  top: 25px;
+  left: 0;
+  width: 100%;
+  height: calc(100% - 25px);
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent,
+    transparent 8px,
+    rgba(64, 156, 255, 0.18) 8px,
+    rgba(64, 156, 255, 0.18) 12px
+  );
+  z-index: 2;
+}
+
+/* 加入垂直分隔线，增强建筑细节 */
+.landmark-building-windows::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 33%;
+  width: 1px;
+  height: 100%;
+  background: rgba(28, 126, 214, 0.25);
+  z-index: 3;
+}
+
+.landmark-building-windows::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 66%;
+  width: 1px;
+  height: 100%;
+  background: rgba(28, 126, 214, 0.25);
+  z-index: 3;
+}
+
+/* 高楼的底座部分 */
+.landmark-building-base {
+  position: absolute;
+  bottom: 0;
+  left: -5px;
+  width: calc(100% + 10px);
+  height: 25%; /* 底座高度 */
+  background: linear-gradient(to bottom, rgba(28, 59, 91, 0.8), rgba(13, 25, 42, 0.9));
+  z-index: 1;
+  border-radius: 0 0 5px 5px;
+  box-shadow: 0 0 10px rgba(28, 126, 214, 0.3);
+}
+
+/* 底座装饰 */
+.landmark-building-base::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: repeating-linear-gradient(
+    to right,
+    transparent,
+    transparent 8px,
+    rgba(28, 126, 214, 0.08) 8px,
+    rgba(28, 126, 214, 0.08) 16px
+  );
+  z-index: 1;
+}
+
+.building-light {
+  position: absolute;
+  background-color: rgba(255, 221, 153, 0.8);
+  border-radius: 50%;
+  animation: blink 3s infinite alternate;
+  box-shadow: 0 0 4px rgba(255, 221, 153, 0.7);
+}
+
+.stars {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+}
+
+.star {
+  position: absolute;
+  background-color: #ffffff;
+  border-radius: 50%;
+  animation: twinkle 4s infinite;
+  z-index: 1;
+  box-shadow: 0 0 2px rgba(255, 255, 255, 0.5);
+}
+
+@keyframes twinkle {
+  0% { opacity: 0.2; }
+  50% { opacity: 0.8; }
+  100% { opacity: 0.2; }
+}
+
+.shooting-star {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  background-color: #99ccff;
+  animation: shoot 8s linear infinite;
+  opacity: 0;
+  z-index: 2;
+  box-shadow: 0 0 4px #99ccff;
+}
+
+@keyframes shoot {
+  0% { 
+    transform: translateX(0) translateY(0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  100% { 
+    transform: translateX(400px) translateY(400px);
+    opacity: 0;
+  }
+}
+
+.city-light {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  background-color: #ffcc66;
+  border-radius: 50%;
+  animation: blink 2s infinite alternate;
+  z-index: 3;
+  box-shadow: 0 0 3px rgba(255, 204, 102, 0.7);
+}
+
+.city-light.bright {
+  background-color: #ffdd99;
+  box-shadow: 0 0 6px rgba(255, 221, 153, 0.9);
+}
+
+@keyframes blink {
+  0% { opacity: 0.4; }
+  100% { opacity: 1; }
+}
+
+.tech-frame {
+  border: 2px solid rgba(28, 126, 214, 0.6);
+  border-radius: 8px;
+  box-shadow: 0 0 15px rgba(28, 126, 214, 0.4), inset 0 0 8px rgba(28, 126, 214, 0.2);
+  background: rgba(13, 25, 42, 0.8);
+  backdrop-filter: blur(8px);
+  overflow: hidden;
+  position: relative;
+}
+
+.tech-frame::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: conic-gradient(
+    transparent, 
+    rgba(28, 126, 214, 0.1), 
+    transparent 30%
+  );
+  animation: rotate 6s linear infinite;
+}
+
+@keyframes rotate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* 动态背景区域样式 */
+.dynamic-bg-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: linear-gradient(180deg, #0a1525 0%, #0d1a2c 60%, #112033 100%);
+}
+
+.dynamic-bg-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(circle at 20% 30%, rgba(28, 126, 214, 0.08) 0%, transparent 40%),
+    radial-gradient(circle at 80% 20%, rgba(28, 126, 214, 0.07) 0%, transparent 35%),
+    radial-gradient(circle at 50% 40%, rgba(28, 126, 214, 0.05) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}

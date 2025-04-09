@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import type { AppProps } from 'next/app';
 import Head from 'next/head';
 import '../styles/globals.css';
+import '../styles/city-background.css';
 
 function MyApp({ Component, pageProps }: AppProps) {
   // PWA相关代码在Vercel上可能导致问题，我们先注释掉

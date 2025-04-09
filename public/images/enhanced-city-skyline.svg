@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1500 300" width="1500" height="300">
+  <!-- 蓝色调城市天际线 - 增强版，包含更多建筑和广州塔模型 -->
+  <style>
+    .building {
+      fill: #0c2d54;
+      stroke: #183c6a;
+      stroke-width: 0.5;
+    }
+    .building-tall {
+      fill: #102845;
+      stroke: #183c6a;
+      stroke-width: 0.7;
+    }
+    .canton-tower {
+      fill: #1c7ed6;
+      fill-opacity: 0.6;
+      stroke: #1c7ed6;
+      stroke-width: 0.8;
+    }
+    .light {
+      fill: #ffcc66;
+      opacity: 0.8;
+      animation: blink 3s infinite alternate;
+    }
+    .port-crane {
+      fill: #2a547a;
+      stroke: #183c6a;
+      stroke-width: 0.5;
+    }
+    .port-crane-detail {
+      fill: none;
+      stroke: #0c2d54;
+      stroke-width: 0.5;
+    }
+    @keyframes blink {
+      0% { opacity: 0.4; }
+      100% { opacity: 0.8; }
+    }
+  </style>
+  
+  <!-- 基础填充 -->
+  <rect x="0" y="290" width="1500" height="10" fill="#0c2d54" />
+  
+  <!-- 远处的建筑 -->
+  <rect class="building" x="50" y="220" width="30" height="80" />
+  <rect class="building" x="80" y="200" width="20" height="100" />
+  <rect class="building" x="100" y="180" width="40" height="120" />
+  <rect class="building" x="140" y="240" width="30" height="60" />
+  <rect class="building" x="170" y="210" width="50" height="90" />
+  
+  <!-- 中间的高层建筑 -->
+  <rect class="building" x="240" y="160" width="50" height="140" />
+  <rect class="building" x="290" y="140" width="30" height="160" />
+  <rect class="building" x="320" y="170" width="40" height="130" />
+  <rect class="building" x="360" y="130" width="20" height="170" />
+  <rect class="building" x="380" y="190" width="60" height="110" />
+  
+  <!-- 港口起重机结构 -->
+  <rect class="port-crane" x="460" y="200" width="10" height="100" />
+  <rect class="port-crane" x="470" y="195" width="60" height="10" />
+  <rect class="port-crane" x="520" y="200" width="10" height="100" />
+  <rect class="port-crane" x="480" y="210" width="5" height="90" />
+  <rect class="port-crane" x="505" y="210" width="5" height="90" />
+  <line class="port-crane-detail" x1="470" y1="195" x2="470" y2="290" />
+  <line class="port-crane-detail" x1="530" y1="195" x2="530" y2="290" />
+  
+  <!-- 右侧建筑群 -->
+  <rect class="building" x="570" y="150" width="40" height="150" />
+  <rect class="building" x="610" y="180" width="50" height="120" />
+  <rect class="building" x="660" y="140" width="30" height="160" />
+  <rect class="building" x="690" y="190" width="40" height="110" />
+  <rect class="building" x="730" y="160" width="25" height="140" />
+  
+  <!-- 广州塔(小蛮腰) -->
+  <g class="canton-tower">
+    <!-- 塔身 -->
+    <rect x="800" y="60" width="8" height="240" rx="2" />
+    <!-- 塔顶 -->
+    <ellipse cx="804" cy="50" rx="12" ry="6" />
+    <!-- 观光层 -->
+    <rect x="790" y="100" width="28" height="12" rx="6" />
+    <rect x="792" y="120" width="24" height="10" rx="5" />
+    <rect x="794" y="140" width="20" height="8" rx="4" />
+    <!-- 结构装饰 -->
+    <line x1="800" y1="60" x2="790" y2="290" stroke-width="1" />
+    <line x1="808" y1="60" x2="818" y2="290" stroke-width="1" />
+  </g>
+  
+  <!-- 超高建筑 -->
+  <rect class="building-tall" x="870" y="110" width="35" height="190" />
+  <rect class="building-tall" x="910" y="90" width="25" height="210" />
+  <rect class="building-tall" x="950" y="70" width="20" height="230" />
+  
+  <!-- 远处更多建筑 -->
+  <rect class="building" x="1010" y="210" width="35" height="90" />
+  <rect class="building" x="1045" y="170" width="20" height="130" />
+  <rect class="building" x="1065" y="200" width="45" height="100" />
+  <rect class="building" x="1110" y="230" width="30" height="70" />
+  <rect class="building" x="1140" y="190" width="40" height="110" />
+  
+  <!-- 右侧高层建筑 -->
+  <rect class="building" x="1200" y="150" width="35" height="150" />
+  <rect class="building" x="1235" y="130" width="25" height="170" />
+  <rect class="building" x="1260" y="180" width="50" height="120" />
+  <rect class="building" x="1310" y="160" width="30" height="140" />
+  <rect class="building" x="1340" y="200" width="40" height="100" />
+  
+  <!-- 最右侧建筑 -->
+  <rect class="building" x="1400" y="170" width="30" height="130" />
+  <rect class="building" x="1430" y="190" width="45" height="110" />
+  <rect class="building" x="1475" y="150" width="25" height="150" />
+  
+  <!-- 建筑物上的灯光 -->
+  <rect class="light" x="65" y="230" width="2" height="2" />
+  <rect class="light" x="85" y="210" width="2" height="2" />
+  <rect class="light" x="115" y="190" width="2" height="2" />
+  <rect class="light" x="145" y="250" width="2" height="2" />
+  <rect class="light" x="255" y="170" width="2" height="2" />
+  <rect class="light" x="295" y="150" width="2" height="2" />
+  <rect class="light" x="335" y="180" width="2" height="2" />
+  <rect class="light" x="365" y="140" width="2" height="2" />
+  <rect class="light" x="585" y="160" width="2" height="2" />
+  <rect class="light" x="625" y="190" width="2" height="2" />
+  <rect class="light" x="665" y="150" width="2" height="2" />
+  <rect class="light" x="695" y="200" width="2" height="2" />
+  
+  <!-- 广州塔灯光 -->
+  <rect class="light" x="800" y="80" width="2" height="2" />
+  <rect class="light" x="806" y="65" width="2" height="2" />
+  <rect class="light" x="803" y="105" width="2" height="2" />
+  <rect class="light" x="799" y="125" width="2" height="2" />
+  <rect class="light" x="805" y="145" width="2" height="2" />
+  <rect class="light" x="802" y="165" width="2" height="2" />
+  <rect class="light" x="800" y="185" width="2" height="2" />
+  <rect class="light" x="806" y="205" width="2" height="2" />
+  
+  <!-- 超高建筑灯光 -->
+  <rect class="light" x="885" y="120" width="2" height="2" />
+  <rect class="light" x="880" y="150" width="2" height="2" />
+  <rect class="light" x="890" y="180" width="2" height="2" />
+  <rect class="light" x="920" y="100" width="2" height="2" />
+  <rect class="light" x="915" y="130" width="2" height="2" />
+  <rect class="light" x="922" y="160" width="2" height="2" />
+  <rect class="light" x="960" y="80" width="2" height="2" />
+  <rect class="light" x="955" y="110" width="2" height="2" />
+  <rect class="light" x="965" y="140" width="2" height="2" />
+  
+  <!-- 随机灯光点缀 -->
+  <rect class="light" x="110" y="220" width="2" height="2" />
+  <rect class="light" x="180" y="240" width="2" height="2" />
+  <rect class="light" x="270" y="200" width="2" height="2" />
+  <rect class="light" x="350" y="210" width="2" height="2" />
+  <rect class="light" x="400" y="230" width="2" height="2" />
+  <rect class="light" x="480" y="240" width="2" height="2" />
+  <rect class="light" x="590" y="220" width="2" height="2" />
+  <rect class="light" x="640" y="190" width="2" height="2" />
+  <rect class="light" x="710" y="210" width="2" height="2" />
+  <rect class="light" x="1020" y="230" width="2" height="2" />
+  <rect class="light" x="1050" y="220" width="2" height="2" />
+  <rect class="light" x="1080" y="250" width="2" height="2" />
+  <rect class="light" x="1120" y="240" width="2" height="2" />
+  <rect class="light" x="1210" y="200" width="2" height="2" />
+  <rect class="light" x="1250" y="230" width="2" height="2" />
+  <rect class="light" x="1320" y="210" width="2" height="2" />
+  <rect class="light" x="1410" y="190" width="2" height="2" />
+  <rect class="light" x="1445" y="220" width="2" height="2" />
+  <rect class="light" x="1485" y="170" width="2" height="2" />
+</svg>

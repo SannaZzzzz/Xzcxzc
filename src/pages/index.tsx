@@ -4,6 +4,7 @@ import Image from 'next/image';
 import SpeechRecognition from '../components/SpeechRecognition';
 import CharacterAnimation from '../components/CharacterAnimation';
 import AIResponse from '../components/AIResponse';
+import DynamicCityBackground from '../components/DynamicCityBackground';
 
 export default function Home() {
   const [userInput, setUserInput] = useState('');
@@ -51,6 +52,13 @@ export default function Home() {
       {/* 背景光效 */}
       <div className="absolute top-0 left-1/4 w-96 h-96 bg-tech-blue opacity-10 rounded-full filter blur-3xl"></div>
       <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-tech-blue opacity-10 rounded-full filter blur-3xl"></div>
+      
+      {/* 桌面端背景 - 只在非移动端显示 */}
+      {!isMobile && (
+        <div className="absolute inset-0 z-0 overflow-hidden">
+          <DynamicCityBackground className="h-full w-full" />
+        </div>
+      )}
       
       <Head>
         <title>虚拟许振超 | AI交互</title>
@@ -135,19 +143,19 @@ export default function Home() {
             </div>
           </div>
         ) : (
-          // 桌面端布局 - 使用相对定位并居中整体，减小高度以避免滚动条
+          // 桌面端布局 - 修改此处，添加动态城市背景
           <div className="relative w-full h-[80vh] max-w-[90%] mx-auto flex justify-center">
             {/* 整体容器 - 固定宽度并居中 */}
             <div className="relative w-[95%] h-full">
               {/* 动画区域 - 修改：调整样式以配合新的动画缩放逻辑 */}
-              <div className="absolute top-[2%] left-[30%] transform -translate-x-1/2 w-auto h-[88%] flex flex-col items-center origin-top">
+              <div className="absolute top-[2%] left-[30%] transform -translate-x-1/2 w-auto h-[88%] flex flex-col items-center origin-top z-20">
                 {/* 将标题放在动画框上方中央 */}
                 <h2 className="text-2xl font-semibold mb-2 text-center flex items-center">
                   <span className="inline-block w-2 h-2 bg-tech-blue rounded-full mr-2 animate-pulse"></span>
                   专家形象：虚拟许振超
                 </h2>
                 
-                <div className="tech-card rounded-xl bg-gray-800 p-3 h-full w-full">
+                <div className="tech-card rounded-xl bg-gray-800 bg-opacity-90 p-3 h-full w-full">
                   <div className="border-2 border-opacity-40 border-tech-blue rounded-lg flex items-center justify-center h-full w-full overflow-hidden glowing-border">
                     <CharacterAnimation
                       character={character}
@@ -158,30 +166,30 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* 对话区域 - 右侧，底部对齐，距离减小 */}
-              <div className="absolute bottom-[7%] right-[12%] w-[32%] tech-card rounded-xl bg-gray-800 p-3">
-                <h2 className="text-xl font-semibold mb-2 flex items-center">
+              {/* 对话区域 - 右侧，底部对齐，距离减小，增加z-index确保在背景上方 */}
+              <div className="absolute bottom-[7%] right-[12%] w-[32%] tech-card rounded-xl bg-gray-800 bg-opacity-80 p-3 z-20">
+                <h2 className="text-xl font-semibold mb-2 flex items-center text-white">
                   <span className="inline-block w-2 h-2 bg-tech-blue rounded-full mr-2 animate-pulse"></span>
                   专家对话
                 </h2>
 
-                <div className="h-32 overflow-y-auto bg-gray-900 rounded-lg p-3 mb-2 glowing-border border border-tech-blue border-opacity-30">
+                <div className="h-32 overflow-y-auto rounded-lg p-3 mb-2 border border-tech-blue border-opacity-50 bg-gray-900 bg-opacity-60 backdrop-filter backdrop-blur-sm">
                   {userInput && (
                     <div className="mb-2">
-                      <p className="text-xs text-gray-400">你：</p>
-                      <p className="bg-gray-800 bg-opacity-70 rounded-lg p-1 text-sm backdrop-filter backdrop-blur-sm">{userInput}</p>
+                      <p className="text-xs text-gray-300">你：</p>
+                      <p className="bg-gray-800 bg-opacity-70 rounded-lg p-1 text-sm backdrop-filter backdrop-blur-sm text-white">{userInput}</p>
                     </div>
                   )}
 
                   {aiResponse && (
                     <div className="mb-2">
                       <p className="text-xs text-tech-blue">虚拟许振超：</p>
-                      <p className="bg-tech-dark bg-opacity-70 rounded-lg p-1 text-sm border border-tech-blue border-opacity-20 shadow-neon">{aiResponse}</p>
+                      <p className="bg-tech-dark bg-opacity-70 rounded-lg p-1 text-sm border border-tech-blue border-opacity-20 shadow-neon text-white">{aiResponse}</p>
                     </div>
                   )}
                 </div>
 
-                <div className="mt-auto">
+                <div className="mt-auto backdrop-filter backdrop-blur-sm bg-gray-900 bg-opacity-50 p-2 rounded-lg border border-tech-blue border-opacity-30">
                   <SpeechRecognition
                     onResult={setUserInput}
                     isListening={isListening}
