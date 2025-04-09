@@ -34,10 +34,12 @@ const TechGridVisualization: React.FC<TechGridVisualizationProps> = ({ className
       speedY: number;
       color: string;
       alpha: number;
+      private canvasRef: HTMLCanvasElement;
       
-      constructor() {
-        this.x = Math.random() * canvas.width;
-        this.y = Math.random() * canvas.height;
+      constructor(canvasRef: HTMLCanvasElement) {
+        this.canvasRef = canvasRef;
+        this.x = Math.random() * this.canvasRef.width;
+        this.y = Math.random() * this.canvasRef.height;
         this.size = Math.random() * 3 + 0.5;
         this.speedX = (Math.random() - 0.5) * 0.5;
         this.speedY = (Math.random() - 0.5) * 0.5;
@@ -50,14 +52,14 @@ const TechGridVisualization: React.FC<TechGridVisualizationProps> = ({ className
         this.y += this.speedY;
         
         // 如果粒子超出边界，将其反向移动
-        if (this.x > canvas.width) this.x = 0;
-        else if (this.x < 0) this.x = canvas.width;
+        if (this.x > this.canvasRef.width) this.x = 0;
+        else if (this.x < 0) this.x = this.canvasRef.width;
         
-        if (this.y > canvas.height) this.y = 0;
-        else if (this.y < 0) this.y = canvas.height;
+        if (this.y > this.canvasRef.height) this.y = 0;
+        else if (this.y < 0) this.y = this.canvasRef.height;
       }
       
-      draw() {
+      draw(ctx: CanvasRenderingContext2D) {
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
         ctx.globalAlpha = this.alpha;
@@ -91,41 +93,44 @@ const TechGridVisualization: React.FC<TechGridVisualizationProps> = ({ className
     const dataStreams: DataStream[] = [];
     
     class DataStream {
-      startX: number;
-      startY: number;
-      endX: number;
-      endY: number;
-      speed: number;
-      progress: number;
-      width: number;
-      color: string;
+      startX!: number;
+      startY!: number;
+      endX!: number;
+      endY!: number;
+      speed!: number;
+      progress!: number;
+      width!: number;
+      color!: string;
+      private canvasRef: HTMLCanvasElement;
       
-      constructor() {
+      constructor(canvasRef: HTMLCanvasElement) {
+        this.canvasRef = canvasRef;
+        
         // 从边缘开始
         const side = Math.floor(Math.random() * 4);
         
         switch(side) {
           case 0: // 顶部
-            this.startX = Math.random() * canvas.width;
+            this.startX = Math.random() * this.canvasRef.width;
             this.startY = 0;
             break;
           case 1: // 右侧
-            this.startX = canvas.width;
-            this.startY = Math.random() * canvas.height;
+            this.startX = this.canvasRef.width;
+            this.startY = Math.random() * this.canvasRef.height;
             break;
           case 2: // 底部
-            this.startX = Math.random() * canvas.width;
-            this.startY = canvas.height;
+            this.startX = Math.random() * this.canvasRef.width;
+            this.startY = this.canvasRef.height;
             break;
           case 3: // 左侧
             this.startX = 0;
-            this.startY = Math.random() * canvas.height;
+            this.startY = Math.random() * this.canvasRef.height;
             break;
         }
         
         // 随机终点
-        this.endX = Math.random() * canvas.width;
-        this.endY = Math.random() * canvas.height;
+        this.endX = Math.random() * this.canvasRef.width;
+        this.endY = Math.random() * this.canvasRef.height;
         
         this.speed = Math.random() * 0.008 + 0.002;
         this.progress = 0;
@@ -151,29 +156,29 @@ const TechGridVisualization: React.FC<TechGridVisualizationProps> = ({ className
         
         switch(side) {
           case 0: // 顶部
-            this.startX = Math.random() * canvas.width;
+            this.startX = Math.random() * this.canvasRef.width;
             this.startY = 0;
             break;
           case 1: // 右侧
-            this.startX = canvas.width;
-            this.startY = Math.random() * canvas.height;
+            this.startX = this.canvasRef.width;
+            this.startY = Math.random() * this.canvasRef.height;
             break;
           case 2: // 底部
-            this.startX = Math.random() * canvas.width;
-            this.startY = canvas.height;
+            this.startX = Math.random() * this.canvasRef.width;
+            this.startY = this.canvasRef.height;
             break;
           case 3: // 左侧
             this.startX = 0;
-            this.startY = Math.random() * canvas.height;
+            this.startY = Math.random() * this.canvasRef.height;
             break;
         }
         
-        this.endX = Math.random() * canvas.width;
-        this.endY = Math.random() * canvas.height;
+        this.endX = Math.random() * this.canvasRef.width;
+        this.endY = Math.random() * this.canvasRef.height;
         this.progress = 0;
       }
       
-      draw() {
+      draw(ctx: CanvasRenderingContext2D) {
         const currentX = this.startX + (this.endX - this.startX) * this.progress;
         const currentY = this.startY + (this.endY - this.startY) * this.progress;
         
@@ -245,12 +250,12 @@ const TechGridVisualization: React.FC<TechGridVisualizationProps> = ({ className
     const init = () => {
       // 创建粒子
       for (let i = 0; i < 30; i++) {
-        particles.push(new Particle());
+        particles.push(new Particle(canvasRef.current!));
       }
       
       // 创建数据流
       for (let i = 0; i < 5; i++) {
-        dataStreams.push(new DataStream());
+        dataStreams.push(new DataStream(canvasRef.current!));
       }
     };
     
@@ -268,7 +273,7 @@ const TechGridVisualization: React.FC<TechGridVisualizationProps> = ({ className
       // 更新和绘制粒子
       particles.forEach(particle => {
         particle.update();
-        particle.draw();
+        particle.draw(ctx);
       });
       
       // 绘制连接线
@@ -277,7 +282,7 @@ const TechGridVisualization: React.FC<TechGridVisualizationProps> = ({ className
       // 更新和绘制数据流
       dataStreams.forEach(stream => {
         stream.update();
-        stream.draw();
+        stream.draw(ctx);
       });
       
       // 绘制节点

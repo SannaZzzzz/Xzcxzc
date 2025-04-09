@@ -178,9 +178,12 @@ const CharacterAnimation: React.FC<CharacterAnimationProps> = ({
 
   // 处理视频画面
   useEffect(() => {
-    if (!videoLoaded || !videoRef.current || !canvasRef.current) return;
-
-    const canvas = canvasRef.current;
+    // 先检查必要条件
+    if (!videoLoaded || !videoRef.current) return;
+    if (!canvasRef.current) return; // 单独检查canvas ref
+    
+    // 安全地获取canvas并添加类型断言
+    const canvas = canvasRef.current as HTMLCanvasElement;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
@@ -229,8 +232,13 @@ const CharacterAnimation: React.FC<CharacterAnimationProps> = ({
       playVideo();
 
       const renderFrame = () => {
+        // 检查动画状态
         if (!isAnimating) return;
+        
+        // 确保canvas引用仍然有效
+        if (!canvasRef.current) return;
 
+        // 安全绘制
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         
         // 设置科技感效果
@@ -253,6 +261,9 @@ const CharacterAnimation: React.FC<CharacterAnimationProps> = ({
     } else {
       video.pause();
       if (video.readyState >= 2) {
+        // 确保canvas引用仍然有效
+        if (!canvasRef.current) return;
+        
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         
@@ -266,11 +277,13 @@ const CharacterAnimation: React.FC<CharacterAnimationProps> = ({
         ctx.strokeRect(0, 0, canvas.width, canvas.height);
         ctx.restore();
       }
+      
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
     }
 
+    // 清理函数
     return () => {
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
