@@ -20,11 +20,12 @@ const CharacterAnimation: React.FC<CharacterAnimationProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const [videoAspectRatio, setVideoAspectRatio] = useState(16/9); // 默认视频比例
   
-  // 字幕状态
-  const [sentences, setSentences] = useState<string[]>([]);
-  const [currentSentenceIndex, setCurrentSentenceIndex] = useState(0);
-  const scrollTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const isAnimatingRef = useRef(false); // 保存动画状态的引用，用于定时器
+  // 简化字幕状态 - 直接使用字数切割
+  const [fullText, setFullText] = useState("");
+  const [currentPosition, setCurrentPosition] = useState(0);
+  const [displayText, setDisplayText] = useState("");
+  const timerId = useRef<NodeJS.Timeout | null>(null);
+  const CHARS_PER_STEP = 50; // 每次显示50个字
   
   // 检测移动设备
   useEffect(() => {
@@ -43,130 +44,87 @@ const CharacterAnimation: React.FC<CharacterAnimationProps> = ({
     };
   }, []);
 
-  // 处理响应文本，分割成句子
+  // 初始化字幕显示
   useEffect(() => {
     console.log('CharacterAnimation组件 - AI响应变化');
     console.log('- 动画状态:', isAnimating);
     console.log('- 接收到响应长度:', response ? response.length : 0);
     
-    // 保存动画状态的引用
-    isAnimatingRef.current = isAnimating;
-    
     if (isAnimating && response) {
+      // 保存原始回答全文
       const text = response.trim();
+      setFullText(text);
       
-      // 分割成句子 - 按标点符号分割
-      const sentenceArray = splitTextIntoSentences(text);
-      console.log(`- 分割成 ${sentenceArray.length} 个句子`);
+      // 重置当前位置
+      setCurrentPosition(0);
       
-      // 保存分割后的句子
-      setSentences(sentenceArray);
-      
-      // 重置索引
-      setCurrentSentenceIndex(0);
-      
-      // 启动字幕滚动 - 延迟一点启动，确保状态已更新
-      setTimeout(() => {
-        startSubtitleScroll();
-      }, 100);
+      // 启动字幕滚动
+      if (text.length > 0) {
+        startTextDisplay();
+      }
     } else {
-      // 停止字幕滚动
-      stopSubtitleScroll();
-      
-      // 清空句子
-      setSentences([]);
-      setCurrentSentenceIndex(0);
+      // 停止显示
+      stopTextDisplay();
+      setFullText("");
+      setCurrentPosition(0);
+      setDisplayText("");
     }
     
-    // 组件卸载时清理
     return () => {
-      stopSubtitleScroll();
+      stopTextDisplay();
     };
   }, [isAnimating, response]);
-
-  // 分割文本成句子的函数
-  const splitTextIntoSentences = (text: string): string[] => {
-    if (!text) return [];
+  
+  // 启动字幕滚动 - 极简单可靠的实现
+  const startTextDisplay = () => {
+    // 清理现有计时器
+    stopTextDisplay();
     
-    // 按标点符号分割
-    const sentenceParts = text.split(/([。？！\.?!]\s*)/).filter(Boolean);
-    const result: string[] = [];
+    // 立即显示第一段
+    updateDisplayText();
     
-    // 将标点符号与前面的文本合并
-    for (let i = 0; i < sentenceParts.length; i += 2) {
-      const current = sentenceParts[i];
-      const punctuation = i + 1 < sentenceParts.length ? sentenceParts[i + 1] : '';
-      
-      if (current || punctuation) {
-        result.push((current || '') + (punctuation || ''));
-      }
-    }
+    // 然后设置计时器，定时更新显示的文本
+    timerId.current = setInterval(() => {
+      updateDisplayText();
+    }, 3000); // 每3秒更新一次
     
-    // 如果没有找到标点符号，则按长度分割（每25个字符）
-    if (result.length === 0) {
-      for (let i = 0; i < text.length; i += 25) {
-        const chunk = text.substring(i, Math.min(i + 25, text.length));
-        if (chunk.trim()) {
-          result.push(chunk.trim());
-        }
-      }
-    }
-    
-    console.log("分割的句子:", result);
-    return result;
+    console.log("字幕滚动已启动");
   };
   
-  // 启动字幕滚动 - 改进版，确保能够工作
-  const startSubtitleScroll = () => {
-    // 清除之前的定时器
-    stopSubtitleScroll();
-    
-    console.log("启动字幕滚动 - 总句数:", sentences.length);
-    
-    if (sentences.length <= 1) {
-      console.log("句子数量太少，不启动滚动");
-      return; // 如果只有一个句子，不需要滚动
+  // 停止字幕显示
+  const stopTextDisplay = () => {
+    if (timerId.current) {
+      clearInterval(timerId.current);
+      timerId.current = null;
+      console.log("字幕滚动已停止");
     }
-    
-    // 使用React状态更新来触发滚动
-    const doScroll = () => {
-      if (!isAnimatingRef.current) {
-        console.log("动画已停止，取消滚动");
-        stopSubtitleScroll();
-        return;
-      }
-      
-      setCurrentSentenceIndex(prev => {
-        const nextIndex = prev >= sentences.length - 2 ? prev : prev + 1;
-        console.log(`字幕滚动: ${prev} -> ${nextIndex}, 总句数: ${sentences.length}`);
-        return nextIndex;
-      });
-      
-      // 继续滚动，直到到达最后
-      if (currentSentenceIndex < sentences.length - 2) {
-        scrollTimerRef.current = setTimeout(doScroll, 2500); // 每2.5秒滚动一次
-      } else {
-        console.log("已滚动到最后，停止");
-      }
-    };
-    
-    // 开始第一次滚动
-    scrollTimerRef.current = setTimeout(doScroll, 2500);
   };
   
-  // 停止字幕滚动
-  const stopSubtitleScroll = () => {
-    console.log("停止字幕滚动");
-    if (scrollTimerRef.current) {
-      clearTimeout(scrollTimerRef.current);
-      scrollTimerRef.current = null;
+  // 更新当前显示的文本段落
+  const updateDisplayText = () => {
+    if (fullText.length === 0) return;
+    
+    // 如果已经显示完全部文本，停止计时器
+    if (currentPosition >= fullText.length) {
+      stopTextDisplay();
+      return;
+    }
+    
+    // 计算当前要显示的文本片段
+    const endPosition = Math.min(currentPosition + CHARS_PER_STEP, fullText.length);
+    const textSegment = fullText.substring(currentPosition, endPosition);
+    
+    // 更新显示文本和位置
+    setDisplayText(textSegment);
+    setCurrentPosition(endPosition);
+    
+    console.log(`更新字幕: ${currentPosition}-${endPosition}/${fullText.length}`);
+    
+    // 如果已显示完全部文本，停止计时器
+    if (endPosition >= fullText.length) {
+      stopTextDisplay();
     }
   };
-
-  // 在currentSentenceIndex变化时记录
-  useEffect(() => {
-    console.log(`字幕索引变化: ${currentSentenceIndex}/${sentences.length}`);
-  }, [currentSentenceIndex, sentences.length]);
 
   // 视频加载与播放逻辑
   useEffect(() => {
@@ -343,78 +301,38 @@ const CharacterAnimation: React.FC<CharacterAnimationProps> = ({
     };
   }, [isAnimating, videoLoaded, isMobile, videoAspectRatio]);
 
-  // 获取当前要显示的句子（当前+下一句）
-  const getCurrentText = () => {
-    if (sentences.length === 0) return "";
-    
-    // 获取当前句子和下一句（如果有）
-    const current = sentences[currentSentenceIndex] || "";
-    const next = currentSentenceIndex + 1 < sentences.length ? sentences[currentSentenceIndex + 1] : "";
-    
-    // 组合当前和下一句
-    return current + (next ? " " + next : "");
+  // 计算进度百分比
+  const getProgressPercentage = () => {
+    if (fullText.length === 0) return 0;
+    return Math.min(100, (currentPosition / fullText.length) * 100);
   };
 
-  // 渲染字幕组件
+  // 手动前进按钮
+  const handleManualProgress = () => {
+    updateDisplayText();
+  };
+
+  // 字幕显示组件
   const renderSubtitle = () => {
-    const currentTextToShow = getCurrentText();
-    if (!currentTextToShow) return null;
-    
-    // 计算进度百分比
-    const progress = sentences.length > 1 ? 
-      Math.min(100, (currentSentenceIndex / Math.max(1, sentences.length - 2)) * 100) : 0;
+    if (!displayText) return null;
     
     return (
       <div className="absolute bottom-4 left-2 right-2 flex flex-col items-center z-10">
         <div className="bg-black bg-opacity-85 text-white px-5 py-4 rounded-lg max-w-[95%] text-center border border-tech-blue border-opacity-50 shadow-lg">
           <p className="text-sm md:text-base font-medium leading-relaxed">
-            {currentTextToShow}
+            {displayText}
           </p>
         </div>
         
         {/* 进度条 */}
-        {sentences.length > 2 && (
-          <div className="w-1/2 h-1 bg-gray-800 rounded-full mt-2 overflow-hidden">
-            <div 
-              className="h-full bg-tech-blue transition-all duration-300 rounded-full"
-              style={{ width: `${progress}%` }}
-            ></div>
-          </div>
-        )}
+        <div className="w-1/2 h-1 bg-gray-800 rounded-full mt-2 overflow-hidden">
+          <div 
+            className="h-full bg-tech-blue transition-all duration-300 rounded-full"
+            style={{ width: `${getProgressPercentage()}%` }}
+          ></div>
+        </div>
       </div>
     );
-  };
-
-  // 创建一个手动按钮来测试字幕滚动功能
-  const renderDebugControls = () => {
-    if (process.env.NODE_ENV !== 'production') {
-      return (
-        <div className="absolute top-10 right-1 bg-black bg-opacity-70 p-1 rounded text-xs text-white z-30 flex flex-col gap-1">
-          <button 
-            className="px-2 py-1 bg-blue-600 rounded text-white text-xs"
-            onClick={() => {
-              // 手动前进一句
-              setCurrentSentenceIndex(prev => 
-                Math.min(sentences.length - 1, prev + 1)
-              );
-            }}
-          >
-            下一句 →
-          </button>
-          <button 
-            className="px-2 py-1 bg-green-600 rounded text-white text-xs"
-            onClick={() => {
-              // 手动重置滚动
-              setCurrentSentenceIndex(0);
-              startSubtitleScroll();
-            }}
-          >
-            重置滚动
-          </button>
-        </div>
-      );
-    }
-    return null;
   };
 
   return (
@@ -442,14 +360,23 @@ const CharacterAnimation: React.FC<CharacterAnimationProps> = ({
       {/* 调试显示 */}
       {process.env.NODE_ENV !== 'production' && (
         <div className="absolute top-1 right-1 bg-black bg-opacity-70 p-1 rounded text-xs text-gray-300 z-20">
-          <div>总句数: {sentences.length}</div>
-          <div>当前位置: {currentSentenceIndex + 1}/{sentences.length}</div>
-          <div>定时器状态: {scrollTimerRef.current ? '活动' : '无'}</div>
+          <div>总字数: {fullText.length}</div>
+          <div>已显示: {currentPosition}</div>
+          <div>定时器: {timerId.current ? '活动' : '无'}</div>
         </div>
       )}
       
-      {/* 添加调试控制按钮 */}
-      {renderDebugControls()}
+      {/* 手动前进按钮 */}
+      {process.env.NODE_ENV !== 'production' && (
+        <div className="absolute top-10 right-1 bg-black bg-opacity-70 p-1 rounded text-xs text-white z-30">
+          <button 
+            className="px-2 py-1 bg-blue-600 rounded text-white text-xs"
+            onClick={handleManualProgress}
+          >
+            手动前进 →
+          </button>
+        </div>
+      )}
       
       {/* 装饰性科技边角 */}
       <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-tech-blue opacity-70"></div>
@@ -462,7 +389,7 @@ const CharacterAnimation: React.FC<CharacterAnimationProps> = ({
         className={`object-contain rounded-sm ${isMobile ? 'w-full h-auto' : ''}`}
       />
       
-      {/* 使用新的字幕滚动组件 */}
+      {/* 字幕显示 */}
       {renderSubtitle()}
     </div>
   );
