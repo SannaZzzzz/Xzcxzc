@@ -49,22 +49,69 @@ const CharacterAnimation: React.FC<CharacterAnimationProps> = ({
   // 响应变化时分割文本为句子
   useEffect(() => {
     if (response) {
-      // 使用正则表达式分割句子：句号、问号、感叹号、分号、逗号后分割
-      const sentenceArray = response.split(/([。？！；，,\.?!])/g);
+      // 改进的文本分割逻辑，更合理地处理不同标点符号的权重
+      // 1. 先按照句号、问号、感叹号分割成主要句子
+      // 2. 如果句子太长，再按照分号、逗号进行二次分割
       
-      // 将句子和标点符号组合回来
-      const combinedSentences: string[] = [];
-      for (let i = 0; i < sentenceArray.length; i += 2) {
-        const sentence = sentenceArray[i];
-        const punctuation = i + 1 < sentenceArray.length ? sentenceArray[i + 1] : '';
+      // 主要分割点（句号、问号、感叹号）
+      const mainSplitRegex = /([。？！\.\?!])/g;
+      const tempSentences: string[] = [];
+      
+      // 先按主要标点分段
+      const mainParts = response.split(mainSplitRegex);
+      for (let i = 0; i < mainParts.length; i += 2) {
+        const text = mainParts[i];
+        const punctuation = i + 1 < mainParts.length ? mainParts[i + 1] : '';
         
-        if (sentence || punctuation) {
-          combinedSentences.push((sentence || '') + (punctuation || ''));
+        if ((text || punctuation)) {
+          const combinedText = (text || '') + (punctuation || '');
+          
+          // 如果句子较长且包含逗号或分号，考虑进一步分割
+          if (combinedText.length > 20 && /[；，;,]/.test(combinedText)) {
+            const secondarySplitRegex = /([；，;,])/g;
+            const secondaryParts = combinedText.split(secondarySplitRegex);
+            
+            // 按次要标点再分割
+            for (let j = 0; j < secondaryParts.length; j += 2) {
+              const subText = secondaryParts[j];
+              const subPunctuation = j + 1 < secondaryParts.length ? secondaryParts[j + 1] : '';
+              
+              if ((subText || subPunctuation)) {
+                tempSentences.push((subText || '') + (subPunctuation || ''));
+              }
+            }
+          } else {
+            // 句子较短或没有次要标点，直接添加
+            tempSentences.push(combinedText);
+          }
         }
       }
       
-      // 过滤空句子
-      const filteredSentences = combinedSentences.filter(s => s.trim());
+      // 过滤空句子并合并过短的句子
+      const filteredSentences: string[] = [];
+      let tempSentence = '';
+      
+      tempSentences.forEach(sentence => {
+        if (sentence.trim()) {
+          // 如果当前积累的临时句子加上这个句子仍然很短，就合并它们
+          if ((tempSentence.length + sentence.length) < 15 && 
+              !tempSentence.match(/[。？！\.\?!]$/)) {
+            tempSentence += sentence;
+          } else {
+            // 否则，如果有积累的临时句子，先添加它
+            if (tempSentence) {
+              filteredSentences.push(tempSentence);
+            }
+            tempSentence = sentence;
+          }
+        }
+      });
+      
+      // 添加最后一个积累的句子
+      if (tempSentence) {
+        filteredSentences.push(tempSentence);
+      }
+      
       setSentences(filteredSentences);
     } else {
       setSentences([]);
@@ -92,18 +139,21 @@ const CharacterAnimation: React.FC<CharacterAnimationProps> = ({
       progressRef.current = 0;
       
       if (sentences.length > 0) {
-        // 立即显示第一句，让字幕比语音快一步
-        setCurrentText(sentences[0]);
-        
-        // 如果有多个句子，设置提前显示下一句的定时器
-        if (sentences.length > 1) {
-          // 字幕显示第二句的时间设置短一些，使其比语音快
-          initialDelayRef.current = setTimeout(() => {
-            sentenceIndexRef.current = 1;
-            setCurrentText(sentences[1]);
-            startSubtitleTimer(2); // 从第三句开始继续显示
-          }, calculateDisplayTime(sentences[0]) * 0.7); // 缩短第一句显示时间，让字幕快于语音
-        }
+        // 等待一小段时间再显示第一句，模拟语音生成延迟
+        setTimeout(() => {
+          // 立即显示第一句，让字幕比语音快一步
+          setCurrentText(sentences[0]);
+          
+          // 如果有多个句子，设置显示下一句的定时器
+          if (sentences.length > 1) {
+            // 从第二句开始设置合适的显示时间
+            initialDelayRef.current = setTimeout(() => {
+              sentenceIndexRef.current = 1;
+              setCurrentText(sentences[1]);
+              startSubtitleTimer(2); // 从第三句开始继续显示
+            }, calculateDisplayTime(sentences[0]) * 0.7); // 缩短第一句显示时间
+          }
+        }, 300); // 添加300ms的初始延迟，等待语音开始
       }
     } else {
       // 停止动画时清除字幕
@@ -122,9 +172,24 @@ const CharacterAnimation: React.FC<CharacterAnimationProps> = ({
 
   // 估算每个句子的显示时间
   const calculateDisplayTime = (text: string) => {
-    // 缩短每个字符的显示时间，以加快字幕显示
-    const baseTime = text.length * 160; // 原来是200ms/字符，现在缩短为160ms/字符
-    return Math.max(800, Math.min(baseTime, 3000)); // 缩短最小和最大时间
+    // 调整每个字符需要的播放时间
+    // 中文语音合成大约每分钟300-400字，即每字约150-200ms
+    // 标点符号也算作字符，但播放时有停顿
+    
+    // 根据文本长度动态调整单字时间：
+    // - 短句使用较长的单字时间(约200ms)，以便有足够停留时间
+    // - 长句使用较短的单字时间(约140ms)，避免字幕停留太久
+    let charTime = text.length < 10 ? 220 : 
+                  text.length < 20 ? 180 : 140;
+                  
+    // 基础时间 + 增加标点符号的额外时间
+    let punctuationCount = (text.match(/[。？！；，,\.?!]/g) || []).length;
+    let punctuationTime = punctuationCount * 200; // 每个标点符号增加200ms
+    
+    const baseTime = text.length * charTime + punctuationTime;
+    
+    // 设置合理的最短和最长时间范围
+    return Math.max(800, Math.min(baseTime, 5000));
   };
 
   // 启动字幕显示定时器
@@ -154,11 +219,12 @@ const CharacterAnimation: React.FC<CharacterAnimationProps> = ({
         if (sentenceIndexRef.current < sentences.length && isAnimatingRef.current) {
           setCurrentText(sentences[sentenceIndexRef.current]);
           startSubtitleTimer(sentenceIndexRef.current + 1); // 继续显示下一句
+        } else if (isAnimatingRef.current) {
+          // 所有句子显示完毕，但动画仍在继续
+          // 保持最后一句显示
         } else {
-          // 所有句子显示完毕，或动画已停止
-          if (!isAnimatingRef.current) {
-            setCurrentText("");
-          }
+          // 动画已停止
+          setCurrentText("");
         }
       }, displayTime);
     }

@@ -54,7 +54,7 @@ const AIResponse: React.FC<AIResponseProps> = ({
       // setIsAnimating(true);
       
       await mobileTTS.speak(text, {
-        speed: 4,     // 语速，默认4
+        speed: 5,     // 稍微加快语速，从4调整到5
         pitch: 4,     // 音调，默认4
         volume: 5,    // 音量，默认5
         person: 5003  // 发音人，默认为度逍遥
@@ -194,7 +194,7 @@ const AIResponse: React.FC<AIResponseProps> = ({
         try {
           const voiceConfig = {
             vcn: 'x4_lingbosong',
-            speed: 50,
+            speed: 55,  // 稍微加快语速，从50调整到55
             pitch: 50,
             volume: 50
           };
