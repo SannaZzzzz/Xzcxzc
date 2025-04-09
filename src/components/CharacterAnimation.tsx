@@ -27,7 +27,8 @@ const CharacterAnimation: React.FC<CharacterAnimationProps> = ({
   const subtitleTimerRef = useRef<NodeJS.Timeout | null>(null);  // 字幕显示定时器
   const progressRef = useRef<number>(0);  // 语音合成进度参考值
   const isAnimatingRef = useRef(false);  // 保存动画状态的引用
-
+  const initialDelayRef = useRef<NodeJS.Timeout | null>(null); // 字幕初始延迟定时器
+  
   // 检测移动设备
   useEffect(() => {
     const handleResize = () => {
@@ -74,61 +75,93 @@ const CharacterAnimation: React.FC<CharacterAnimationProps> = ({
   useEffect(() => {
     isAnimatingRef.current = isAnimating;
     
+    // 清除所有现有的计时器
+    if (subtitleTimerRef.current) {
+      clearTimeout(subtitleTimerRef.current);
+      subtitleTimerRef.current = null;
+    }
+    
+    if (initialDelayRef.current) {
+      clearTimeout(initialDelayRef.current);
+      initialDelayRef.current = null;
+    }
+    
     if (isAnimating) {
       // 重置字幕状态
       sentenceIndexRef.current = 0;
       progressRef.current = 0;
       
       if (sentences.length > 0) {
+        // 立即显示第一句，让字幕比语音快一步
         setCurrentText(sentences[0]);
-        startSubtitleTimer();
+        
+        // 如果有多个句子，设置提前显示下一句的定时器
+        if (sentences.length > 1) {
+          // 字幕显示第二句的时间设置短一些，使其比语音快
+          initialDelayRef.current = setTimeout(() => {
+            sentenceIndexRef.current = 1;
+            setCurrentText(sentences[1]);
+            startSubtitleTimer(2); // 从第三句开始继续显示
+          }, calculateDisplayTime(sentences[0]) * 0.7); // 缩短第一句显示时间，让字幕快于语音
+        }
       }
     } else {
       // 停止动画时清除字幕
-      if (subtitleTimerRef.current) {
-        clearTimeout(subtitleTimerRef.current);
-        subtitleTimerRef.current = null;
-      }
       setCurrentText("");
     }
     
     return () => {
       if (subtitleTimerRef.current) {
         clearTimeout(subtitleTimerRef.current);
-        subtitleTimerRef.current = null;
+      }
+      if (initialDelayRef.current) {
+        clearTimeout(initialDelayRef.current);
       }
     };
   }, [isAnimating, sentences]);
 
+  // 估算每个句子的显示时间
+  const calculateDisplayTime = (text: string) => {
+    // 缩短每个字符的显示时间，以加快字幕显示
+    const baseTime = text.length * 160; // 原来是200ms/字符，现在缩短为160ms/字符
+    return Math.max(800, Math.min(baseTime, 3000)); // 缩短最小和最大时间
+  };
+
   // 启动字幕显示定时器
-  const startSubtitleTimer = () => {
-    // 估算每个句子的显示时间，根据句子长度和句子数量
-    const calculateDisplayTime = (text: string) => {
-      // 假设平均每个字符需要0.2秒，最少1秒，最多4秒
-      const baseTime = text.length * 200;
-      return Math.max(1000, Math.min(baseTime, 4000));
-    };
-    
+  const startSubtitleTimer = (startIndex: number = 1) => {
     if (subtitleTimerRef.current) {
       clearTimeout(subtitleTimerRef.current);
     }
     
-    const currentSentence = sentences[sentenceIndexRef.current];
-    const displayTime = calculateDisplayTime(currentSentence);
+    // 如果已经到了最后一句，就不需要继续
+    if (startIndex >= sentences.length) {
+      return;
+    }
     
-    subtitleTimerRef.current = setTimeout(() => {
-      sentenceIndexRef.current++;
+    sentenceIndexRef.current = startIndex;
+    
+    // 如果还有下一句，安排显示
+    if (sentenceIndexRef.current < sentences.length && isAnimatingRef.current) {
+      const currentSentence = sentences[sentenceIndexRef.current];
+      const displayTime = calculateDisplayTime(currentSentence);
       
-      if (sentenceIndexRef.current < sentences.length && isAnimatingRef.current) {
-        setCurrentText(sentences[sentenceIndexRef.current]);
-        startSubtitleTimer(); // 递归调用，显示下一句
-      } else {
-        // 所有句子显示完毕，或动画已停止
-        if (!isAnimatingRef.current) {
-          setCurrentText("");
+      setCurrentText(currentSentence);
+      
+      // 设置下一句的定时器
+      subtitleTimerRef.current = setTimeout(() => {
+        sentenceIndexRef.current++;
+        
+        if (sentenceIndexRef.current < sentences.length && isAnimatingRef.current) {
+          setCurrentText(sentences[sentenceIndexRef.current]);
+          startSubtitleTimer(sentenceIndexRef.current + 1); // 继续显示下一句
+        } else {
+          // 所有句子显示完毕，或动画已停止
+          if (!isAnimatingRef.current) {
+            setCurrentText("");
+          }
         }
-      }
-    }, displayTime);
+      }, displayTime);
+    }
   };
 
   useEffect(() => {

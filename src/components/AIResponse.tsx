@@ -50,8 +50,8 @@ const AIResponse: React.FC<AIResponseProps> = ({
     try {
       const mobileTTS = MobileTTS.getInstance();
       
-      // 启动动画效果和字幕显示
-      setIsAnimating(true);
+      // 不立即启动动画效果，等语音开始时才启动
+      // setIsAnimating(true);
       
       await mobileTTS.speak(text, {
         speed: 4,     // 语速，默认4
@@ -60,8 +60,9 @@ const AIResponse: React.FC<AIResponseProps> = ({
         person: 5003  // 发音人，默认为度逍遥
       }, {
         onStart: () => {
-          // 语音开始时已经设置了动画效果
+          // 语音开始时才设置动画效果
           console.log('移动端语音合成开始播放');
+          setIsAnimating(true);
         },
         onEnd: () => {
           // 语音播放结束时结束动画
@@ -198,13 +199,14 @@ const AIResponse: React.FC<AIResponseProps> = ({
             volume: 50
           };
           
-          // 启动动画效果和字幕显示
-          setIsAnimating(true);
+          // 不立即启动动画效果，等语音开始时才启动
+          // setIsAnimating(true);
           
           await xfyunTTS.startSynthesis(aiText, voiceConfig, {
             onStart: () => {
-              // 语音开始时已经设置了动画效果
+              // 语音开始时才设置动画效果
               console.log('语音合成开始播放');
+              setIsAnimating(true);
             },
             onEnd: () => {
               // 语音播放结束时结束动画
@@ -298,12 +300,14 @@ const AIResponse: React.FC<AIResponseProps> = ({
           volume: 50
         };
         
-        // 启动动画效果和字幕显示，直接使用setIsAnimating，后面语音播放器会处理onStart和onEnd事件
-        setIsAnimating(true);
+        // 不立即启动动画效果
+        // setIsAnimating(true);
         
         xfyunTTS.startSynthesis(demoText, voiceConfig, {
           onStart: () => {
+            // 语音开始播放时才启动动画
             console.log('演示模式语音开始播放');
+            setIsAnimating(true);
           },
           onEnd: () => {
             console.log('演示模式语音播放结束');
