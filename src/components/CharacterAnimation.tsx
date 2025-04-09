@@ -56,15 +56,15 @@ const CharacterAnimation: React.FC<CharacterAnimationProps> = ({
       setSentences([]);
       setCurrentText("");
       
-      // 改进的文本分割逻辑，按段落而非单句分割
-      // 1. 先按照句号、问号、感叹号分割成主要句子
-      // 2. 然后将多个短句合并成段落显示
+      // 文本分割逻辑 - 每次显示两句话或约25个字
+      // 1. 先按照句号、问号、感叹号分割成单句
+      // 2. 然后将相邻的两句组合在一起显示
       
       // 主要分割点（句号、问号、感叹号）
       const mainSplitRegex = /([。？！\.\?!])/g;
       const tempSentences: string[] = [];
       
-      // 先按主要标点分段
+      // 先按标点分句
       const mainParts = response.split(mainSplitRegex);
       for (let i = 0; i < mainParts.length; i += 2) {
         const text = mainParts[i];
@@ -72,42 +72,66 @@ const CharacterAnimation: React.FC<CharacterAnimationProps> = ({
         
         if ((text || punctuation)) {
           const combinedText = (text || '') + (punctuation || '');
-          tempSentences.push(combinedText);
+          if (combinedText.trim()) {
+            tempSentences.push(combinedText.trim());
+          }
         }
       }
       
-      // 合并多个句子为段落
-      const paragraphs: string[] = [];
-      let currentParagraph = '';
-      let sentenceCount = 0;
+      // 没有标点符号的情况，按固定长度分割
+      if (tempSentences.length === 0 && response.trim()) {
+        const maxLength = 25; // 每段约25个字
+        let remaining = response.trim();
+        
+        while (remaining.length > 0) {
+          const chunk = remaining.slice(0, maxLength);
+          tempSentences.push(chunk);
+          remaining = remaining.slice(maxLength);
+        }
+      }
       
-      tempSentences.forEach(sentence => {
-        if (sentence.trim()) {
-          // 添加当前句子到段落
-          currentParagraph += sentence;
-          sentenceCount++;
-          
-          // 每2-3句或当段落长度超过40字时，形成一个段落
-          if (sentenceCount >= 2 || currentParagraph.length >= 40) {
-            paragraphs.push(currentParagraph);
-            currentParagraph = '';
-            sentenceCount = 0;
+      // 两句话一组进行显示
+      const displaySegments: string[] = [];
+      
+      for (let i = 0; i < tempSentences.length; i += 2) {
+        // 取当前句子
+        const currentSentence = tempSentences[i];
+        
+        // 如果后面还有句子，和当前句子合并
+        if (i + 1 < tempSentences.length) {
+          displaySegments.push(currentSentence + tempSentences[i + 1]);
+        } else {
+          // 最后一句单独显示
+          displaySegments.push(currentSentence);
+        }
+      }
+      
+      // 处理长句情况 - 如果单句超过30个字，按固定长度再次分割
+      const finalSegments: string[] = [];
+      displaySegments.forEach(segment => {
+        if (segment.length > 30) {
+          // 长句按25个字分割
+          let remaining = segment;
+          while (remaining.length > 0) {
+            // 寻找适合的分割点（标点或空格）
+            let cutPoint = Math.min(25, remaining.length);
+            // 如果切分点后面不远处有标点，则延长到标点处
+            for (let i = cutPoint; i < Math.min(cutPoint + 10, remaining.length); i++) {
+              if ('，,。.？?！!；;'.includes(remaining[i])) {
+                cutPoint = i + 1; // 包含标点
+                break;
+              }
+            }
+            finalSegments.push(remaining.slice(0, cutPoint));
+            remaining = remaining.slice(cutPoint);
           }
+        } else {
+          finalSegments.push(segment);
         }
       });
       
-      // 添加最后剩余的内容
-      if (currentParagraph.trim()) {
-        paragraphs.push(currentParagraph);
-      }
-      
-      // 如果没有分段，整个文本作为一个段落
-      if (paragraphs.length === 0 && response.trim()) {
-        paragraphs.push(response.trim());
-      }
-      
-      console.log('处理后的字幕段落:', paragraphs);
-      setSentences(paragraphs);
+      console.log('处理后的字幕段落:', finalSegments);
+      setSentences(finalSegments);
     } else {
       setSentences([]);
     }
@@ -169,15 +193,17 @@ const CharacterAnimation: React.FC<CharacterAnimationProps> = ({
 
   // 估算每个段落的显示时间
   const calculateDisplayTime = (text: string) => {
-    // 段落显示时间更长，确保用户有足够时间阅读
-    const baseTime = text.length * 270; // 每字符270ms
+    // 平衡的显示时间计算
+    // 基础时间 = 文本长度 * 每字时间
+    const charTime = 240; // 每字240ms
+    const baseTime = text.length * charTime;
     
-    // 段落中的标点符号数量
+    // 每个标点符号增加停顿时间
     let punctuationCount = (text.match(/[。？！；，,\.?!]/g) || []).length;
-    let punctuationTime = punctuationCount * 200; // 每个标点符号增加200ms
+    let punctuationTime = punctuationCount * 200; // 每标点200ms
     
-    // 设置合理的最短和最长时间范围
-    return Math.max(2500, Math.min(baseTime + punctuationTime, 12000));
+    // 最短2秒，最长7秒
+    return Math.max(2000, Math.min(baseTime + punctuationTime, 7000));
   };
 
   // 启动字幕显示定时器
