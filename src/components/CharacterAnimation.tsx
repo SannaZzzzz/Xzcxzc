@@ -20,7 +20,7 @@ const CharacterAnimation: React.FC<CharacterAnimationProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const [videoAspectRatio, setVideoAspectRatio] = useState(16/9); // 默认视频比例
   
-  // 简化字幕状态，不使用定时器
+  // 简化字幕状态
   const [currentText, setCurrentText] = useState("");
   
   // 检测移动设备
@@ -42,23 +42,21 @@ const CharacterAnimation: React.FC<CharacterAnimationProps> = ({
 
   // 根据响应和动画状态更新字幕
   useEffect(() => {
-    console.log('动画状态或响应变化:', isAnimating, response ? response.substring(0, 30) + '...' : '');
+    console.log('CharacterAnimation组件 - AI响应变化');
+    console.log('- 动画状态:', isAnimating);
+    console.log('- 接收到响应长度:', response ? response.length : 0);
     
     if (isAnimating && response) {
-      // 接收到响应且动画正在进行，显示字幕
-      
-      // 简单格式化响应文本 - 去除多余空格等
-      const formattedText = response.trim();
-      
       // 直接设置字幕文本
-      setCurrentText(formattedText);
+      setCurrentText(response.trim());
+      console.log('- 已设置字幕文本');
     } else {
-      // 如果动画未进行或没有响应，清空字幕
+      // 清空字幕
       setCurrentText("");
     }
   }, [isAnimating, response]);
 
-  // 视频加载与播放逻辑维持不变
+  // 视频加载与播放逻辑
   useEffect(() => {
     const video = document.createElement("video");
     videoRef.current = video;
@@ -131,6 +129,7 @@ const CharacterAnimation: React.FC<CharacterAnimationProps> = ({
     };
   }, [character]);
 
+  // 处理视频画面
   useEffect(() => {
     if (!videoLoaded || !videoRef.current || !canvasRef.current) return;
 
@@ -146,10 +145,6 @@ const CharacterAnimation: React.FC<CharacterAnimationProps> = ({
 
     // 如果是移动设备，则调整Canvas大小以适应容器宽度
     if (isMobile && containerRef.current) {
-      const containerWidth = containerRef.current.clientWidth;
-      // 保持视频的原始宽高比
-      const aspectRatio = canvas.width / canvas.height;
-      
       // 设置宽度为容器宽度，高度根据宽高比计算
       canvas.style.width = '100%';
       canvas.style.height = 'auto';
@@ -163,7 +158,6 @@ const CharacterAnimation: React.FC<CharacterAnimationProps> = ({
       canvas.style.width = 'auto';
       
       // 2. 计算根据高度缩放后的实际宽度
-      // 由于canvas.style.width已设为'auto'，这里计算缩放后的宽度
       const scaledWidth = (containerHeight * videoAspectRatio);
       
       // 3. 如果缩放后的宽度超出容器宽度，则需要进一步等比例缩小至宽度
@@ -237,39 +231,47 @@ const CharacterAnimation: React.FC<CharacterAnimationProps> = ({
     };
   }, [isAnimating, videoLoaded, isMobile, videoAspectRatio]);
 
-  // 文本分段函数 - 仅用于格式化显示，不影响实际内容
-  const formatTextForDisplay = (text: string) => {
-    if (!text) return '';
+  // 渲染字幕的辅助函数 - 确保适当的换行和格式化
+  const renderSubtitle = () => {
+    if (!currentText) return null;
     
-    // 简单地添加换行，每隔约25-30个字符
-    const formatLength = 30;
-    let result = '';
+    // 按标点符号分割文本成更好阅读的段落
+    const paragraphs = [];
+    let currentParagraph = "";
+    let charCount = 0;
     
-    for (let i = 0; i < text.length; i += formatLength) {
-      // 尝试寻找附近的标点符号
-      let cutPoint = Math.min(i + formatLength, text.length);
-      
-      // 如果不是最后一段且不在标点符号处，尝试找附近的标点
-      if (cutPoint < text.length) {
-        // 向后找10个字符以内的标点
-        for (let j = cutPoint; j > Math.max(cutPoint - 10, i); j--) {
-          if ('。？！，；,.?!;'.includes(text[j])) {
-            cutPoint = j + 1; // 切在标点后面
-            break;
-          }
-        }
-      }
-      
-      // 添加这一段文本
-      result += text.substring(i, cutPoint);
-      
-      // 不是最后一段则添加换行
-      if (cutPoint < text.length) {
-        result += '\n';
+    // 按标点符号分割成句子
+    const sentences = currentText.split(/([。？！\.\?!]\s*)/).filter(Boolean);
+    
+    // 合并句子成段落 (每个段落不超过约40个字符)
+    for (const sentence of sentences) {
+      if (currentParagraph.length + sentence.length > 40 && currentParagraph) {
+        paragraphs.push(currentParagraph);
+        currentParagraph = sentence;
+      } else {
+        currentParagraph += sentence;
       }
     }
     
-    return result;
+    // 添加最后一个段落
+    if (currentParagraph) {
+      paragraphs.push(currentParagraph);
+    }
+    
+    // 根据屏幕大小调整最大高度
+    const maxHeight = isMobile ? '60vh' : '40vh';
+    
+    return (
+      <div className="absolute bottom-4 left-2 right-2 flex justify-center z-10">
+        <div className="bg-black bg-opacity-85 text-white px-5 py-4 rounded-lg max-w-[95%] text-center border border-tech-blue border-opacity-50 shadow-lg overflow-y-auto" style={{ maxHeight }}>
+          <div className="text-sm md:text-base font-medium leading-relaxed">
+            {paragraphs.map((paragraph, index) => (
+              <p key={index} className="mb-2">{paragraph}</p>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -294,6 +296,14 @@ const CharacterAnimation: React.FC<CharacterAnimationProps> = ({
         </div>
       )}
       
+      {/* 调试显示 */}
+      {process.env.NODE_ENV !== 'production' && (
+        <div className="absolute top-1 right-1 bg-black bg-opacity-70 p-1 rounded text-xs text-gray-300 z-20">
+          <div>响应长度: {response?.length || 0}</div>
+          <div>字幕长度: {currentText?.length || 0}</div>
+        </div>
+      )}
+      
       {/* 装饰性科技边角 */}
       <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-tech-blue opacity-70"></div>
       <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-tech-blue opacity-70"></div>
@@ -305,16 +315,8 @@ const CharacterAnimation: React.FC<CharacterAnimationProps> = ({
         className={`object-contain rounded-sm ${isMobile ? 'w-full h-auto' : ''}`}
       />
       
-      {/* 字幕区域 - 使用分段显示但无需定时器 */}
-      {currentText && (
-        <div className="absolute bottom-4 left-2 right-2 flex justify-center z-10">
-          <div className="bg-black bg-opacity-80 text-white px-4 py-3 rounded-lg max-w-[95%] text-center border border-tech-blue border-opacity-40 shadow-lg">
-            <p className="text-sm md:text-base font-medium leading-relaxed whitespace-pre-line">
-              {formatTextForDisplay(currentText)}
-            </p>
-          </div>
-        </div>
-      )}
+      {/* 使用渲染函数显示字幕 */}
+      {renderSubtitle()}
     </div>
   );
 };
