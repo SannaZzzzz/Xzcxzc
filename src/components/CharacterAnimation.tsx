@@ -56,82 +56,75 @@ const CharacterAnimation: React.FC<CharacterAnimationProps> = ({
       setSentences([]);
       setCurrentText("");
       
-      // 文本分割逻辑 - 每次显示两句话或约25个字
-      // 1. 先按照句号、问号、感叹号分割成单句
-      // 2. 然后将相邻的两句组合在一起显示
+      // 文本分割逻辑 - 先按标点分句，然后再合并成适当长度的段落
       
-      // 主要分割点（句号、问号、感叹号）
-      const mainSplitRegex = /([。？！\.\?!])/g;
+      // 句子分割点（各种标点符号）
+      const sentenceSplitRegex = /([。？！\.\?!])/g;
       const tempSentences: string[] = [];
       
-      // 先按标点分句
-      const mainParts = response.split(mainSplitRegex);
-      for (let i = 0; i < mainParts.length; i += 2) {
-        const text = mainParts[i];
-        const punctuation = i + 1 < mainParts.length ? mainParts[i + 1] : '';
-        
-        if ((text || punctuation)) {
-          const combinedText = (text || '') + (punctuation || '');
-          if (combinedText.trim()) {
-            tempSentences.push(combinedText.trim());
+      // 按标点分句
+      if (response.match(sentenceSplitRegex)) {
+        // 有标点符号的情况
+        const parts = response.split(sentenceSplitRegex);
+        for (let i = 0; i < parts.length; i += 2) {
+          const text = parts[i];
+          const punctuation = i + 1 < parts.length ? parts[i + 1] : '';
+          
+          if ((text || punctuation)) {
+            const combinedText = (text || '') + (punctuation || '');
+            if (combinedText.trim()) {
+              tempSentences.push(combinedText.trim());
+            }
           }
         }
-      }
-      
-      // 没有标点符号的情况，按固定长度分割
-      if (tempSentences.length === 0 && response.trim()) {
-        const maxLength = 25; // 每段约25个字
+      } else {
+        // 没有标点符号的情况
+        // 按固定长度分割成句子
+        const maxSentenceLength = 20; // 每个句子最多20个字符
         let remaining = response.trim();
         
         while (remaining.length > 0) {
-          const chunk = remaining.slice(0, maxLength);
+          const chunk = remaining.slice(0, maxSentenceLength);
           tempSentences.push(chunk);
-          remaining = remaining.slice(maxLength);
+          remaining = remaining.slice(maxSentenceLength);
         }
       }
       
-      // 两句话一组进行显示
-      const displaySegments: string[] = [];
+      console.log('分句结果:', tempSentences);
       
-      for (let i = 0; i < tempSentences.length; i += 2) {
-        // 取当前句子
-        const currentSentence = tempSentences[i];
+      // 将句子合并成段落，每段包含1-2个句子，但不超过30个字符
+      const paragraphs: string[] = [];
+      let currentParagraph = '';
+      
+      tempSentences.forEach((sentence, index) => {
+        if (!currentParagraph) {
+          // 开始新段落
+          currentParagraph = sentence;
+        } else if (currentParagraph.length + sentence.length <= 30) {
+          // 当前段落加上这个句子不超过30个字符，合并
+          currentParagraph += sentence;
+        } else {
+          // 当前段落加上这个句子超过30个字符，保存当前段落并开始新段落
+          paragraphs.push(currentParagraph);
+          currentParagraph = sentence;
+        }
         
-        // 如果后面还有句子，和当前句子合并
-        if (i + 1 < tempSentences.length) {
-          displaySegments.push(currentSentence + tempSentences[i + 1]);
-        } else {
-          // 最后一句单独显示
-          displaySegments.push(currentSentence);
-        }
-      }
-      
-      // 处理长句情况 - 如果单句超过30个字，按固定长度再次分割
-      const finalSegments: string[] = [];
-      displaySegments.forEach(segment => {
-        if (segment.length > 30) {
-          // 长句按25个字分割
-          let remaining = segment;
-          while (remaining.length > 0) {
-            // 寻找适合的分割点（标点或空格）
-            let cutPoint = Math.min(25, remaining.length);
-            // 如果切分点后面不远处有标点，则延长到标点处
-            for (let i = cutPoint; i < Math.min(cutPoint + 10, remaining.length); i++) {
-              if ('，,。.？?！!；;'.includes(remaining[i])) {
-                cutPoint = i + 1; // 包含标点
-                break;
-              }
-            }
-            finalSegments.push(remaining.slice(0, cutPoint));
-            remaining = remaining.slice(cutPoint);
+        // 每两个句子强制形成一个段落
+        if ((index + 1) % 2 === 0 || index === tempSentences.length - 1) {
+          if (currentParagraph) {
+            paragraphs.push(currentParagraph);
+            currentParagraph = '';
           }
-        } else {
-          finalSegments.push(segment);
         }
       });
       
-      console.log('处理后的字幕段落:', finalSegments);
-      setSentences(finalSegments);
+      // 处理可能剩余的最后一个段落
+      if (currentParagraph) {
+        paragraphs.push(currentParagraph);
+      }
+      
+      console.log('最终段落结果:', paragraphs);
+      setSentences(paragraphs);
     } else {
       setSentences([]);
     }
@@ -156,25 +149,13 @@ const CharacterAnimation: React.FC<CharacterAnimationProps> = ({
     if (isAnimating) {
       // 重置字幕状态
       sentenceIndexRef.current = 0;
-      progressRef.current = 0;
       
+      // 如果有段落要显示
       if (sentences.length > 0) {
-        // 等待一小段时间再显示第一段，模拟语音生成延迟
+        // 设置延迟显示第一个段落
         setTimeout(() => {
-          // 显示第一段
-          console.log('显示第一段字幕:', sentences[0]);
-          setCurrentText(sentences[0]);
-          
-          // 如果有多个段落，设置显示下一段的定时器
-          if (sentences.length > 1) {
-            initialDelayRef.current = setTimeout(() => {
-              sentenceIndexRef.current = 1;
-              console.log('显示第二段字幕:', sentences[1]);
-              setCurrentText(sentences[1]);
-              startSubtitleTimer(2); // 从第三段开始继续显示
-            }, calculateDisplayTime(sentences[0]));
-          }
-        }, 500);
+          displayNextSegment(0);
+        }, 500); // 延迟500ms开始显示
       }
     } else {
       // 停止动画时清除字幕
@@ -184,66 +165,51 @@ const CharacterAnimation: React.FC<CharacterAnimationProps> = ({
     return () => {
       if (subtitleTimerRef.current) {
         clearTimeout(subtitleTimerRef.current);
+        subtitleTimerRef.current = null;
       }
       if (initialDelayRef.current) {
         clearTimeout(initialDelayRef.current);
+        initialDelayRef.current = null;
       }
     };
   }, [isAnimating, sentences]);
+
+  // 显示下一个段落的函数
+  const displayNextSegment = (index: number) => {
+    // 防止索引越界
+    if (index >= sentences.length || !isAnimatingRef.current) {
+      return;
+    }
+    
+    // 显示当前段落
+    const currentSegment = sentences[index];
+    console.log(`显示段落 ${index+1}/${sentences.length}: ${currentSegment}`);
+    setCurrentText(currentSegment);
+    sentenceIndexRef.current = index;
+    
+    // 计算当前段落的显示时间
+    const displayTime = calculateDisplayTime(currentSegment);
+    
+    // 设置显示下一个段落的定时器
+    subtitleTimerRef.current = setTimeout(() => {
+      // 递增索引，显示下一个段落
+      displayNextSegment(index + 1);
+    }, displayTime);
+  };
 
   // 估算每个段落的显示时间
   const calculateDisplayTime = (text: string) => {
     // 平衡的显示时间计算
     // 基础时间 = 文本长度 * 每字时间
-    const charTime = 240; // 每字240ms
+    const charTime = 230; // 每字230ms
     const baseTime = text.length * charTime;
     
     // 每个标点符号增加停顿时间
     let punctuationCount = (text.match(/[。？！；，,\.?!]/g) || []).length;
     let punctuationTime = punctuationCount * 200; // 每标点200ms
     
-    // 最短2秒，最长7秒
-    return Math.max(2000, Math.min(baseTime + punctuationTime, 7000));
-  };
-
-  // 启动字幕显示定时器
-  const startSubtitleTimer = (startIndex: number = 1) => {
-    if (subtitleTimerRef.current) {
-      clearTimeout(subtitleTimerRef.current);
-    }
-    
-    // 如果已经到了最后一段，就不需要继续
-    if (startIndex >= sentences.length) {
-      return;
-    }
-    
-    sentenceIndexRef.current = startIndex;
-    
-    // 如果还有下一段，安排显示
-    if (sentenceIndexRef.current < sentences.length && isAnimatingRef.current) {
-      const currentSentence = sentences[sentenceIndexRef.current];
-      const displayTime = calculateDisplayTime(currentSentence);
-      
-      console.log(`显示第${startIndex+1}段字幕: ${currentSentence} (显示时间: ${displayTime}ms)`);
-      setCurrentText(currentSentence);
-      
-      // 设置下一段的定时器
-      subtitleTimerRef.current = setTimeout(() => {
-        sentenceIndexRef.current++;
-        
-        if (sentenceIndexRef.current < sentences.length && isAnimatingRef.current) {
-          setCurrentText(sentences[sentenceIndexRef.current]);
-          startSubtitleTimer(sentenceIndexRef.current + 1); // 继续显示下一段
-        } else if (isAnimatingRef.current) {
-          // 所有段落显示完毕，但动画仍在继续
-          // 保持最后一段显示
-          console.log('所有字幕段落已显示完毕');
-        } else {
-          // 动画已停止
-          setCurrentText("");
-        }
-      }, displayTime);
-    }
+    // 最短2.2秒，最长6秒
+    return Math.max(2200, Math.min(baseTime + punctuationTime, 6000));
   };
 
   useEffect(() => {
