@@ -99,7 +99,7 @@ const CharacterAnimation: React.FC<CharacterAnimationProps> = ({
           console.log(`字幕更新: ${prev} -> ${prev + 1}`);
           return prev + 1;
         });
-      }, 2000); // 每2秒滚动一次
+      }, 8000); // 每8秒滚动一次，从2秒改为8秒
       
       return () => {
         console.log('清理计时器');
