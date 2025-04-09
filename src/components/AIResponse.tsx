@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { XFYunWebsocket } from '../utils/xfyunWebsocket';
 import { xfyunConfig } from '../config/xfyunConfig';
-import MobileTTS from '../utils/mobileTTS';
+// 移除MobileTTS导入，因为我们现在使用Web原生语音API
 import axios from 'axios';
 
 interface AIResponseProps {
@@ -48,42 +48,48 @@ const AIResponse: React.FC<AIResponseProps> = ({
 
   const handleMobileTTS = async (text: string) => {
     try {
-      const mobileTTS = MobileTTS.getInstance();
-      
-      // 不立即启动动画效果，等语音开始时才启动
-      // setIsAnimating(true);
-      
-      await mobileTTS.speak(text, {
-        speed: 4,     // 调回默认语速，从5降为4
-        pitch: 4,     // 音调，默认4
-        volume: 5,    // 音量，默认5
-        person: 5003  // 发音人，默认为度逍遥
-      }, {
-        onStart: () => {
-          // 语音开始时才设置动画效果
-          console.log('移动端语音合成开始播放');
-          setIsAnimating(true);
-        },
-        onEnd: () => {
-          // 语音播放结束时结束动画
-          console.log('移动端语音合成播放结束');
-          setIsAnimating(false);
-        }
-      });
-    } catch (err: any) {
-      console.error('移动端语音合成错误:', err);
-      
-      // 检查是否是API密钥配置问题
-      if (err.message && (
-        err.message.includes('缺少百度语音API密钥配置') || 
-        err.message.includes('服务器未正确配置语音合成服务')
-      )) {
-        console.warn('移动端TTS服务未正确配置，尝试使用讯飞TTS');
+      // 使用Web原生语音合成API，不再使用百度TTS
+      if (!window.speechSynthesis) {
+        throw new Error('浏览器不支持Web Speech API');
       }
       
-      // 如果移动端TTS失败，尝试使用讯飞TTS作为备选
+      // 创建语音合成实例
+      const utterance = new SpeechSynthesisUtterance(text);
+      
+      // 设置中文
+      utterance.lang = 'zh-CN';
+      
+      // 设置语速、音调和音量
+      utterance.rate = 0.9;     // 语速 (0.1-10), 1.0是默认值
+      utterance.pitch = 1.0;    // 音调 (0-2), 1.0是默认值
+      utterance.volume = 1.0;   // 音量 (0-1), 1.0是默认值
+      
+      // 添加事件监听器
+      utterance.onstart = () => {
+        console.log('移动端Web语音合成开始播放');
+        setIsAnimating(true);
+      };
+      
+      utterance.onend = () => {
+        console.log('移动端Web语音合成播放结束');
+        setIsAnimating(false);
+      };
+      
+      utterance.onerror = (event) => {
+        console.error('Web语音合成错误:', event);
+        setIsAnimating(false);
+        throw new Error('Web语音合成失败');
+      };
+      
+      // 播放语音
+      window.speechSynthesis.speak(utterance);
+      
+    } catch (err: any) {
+      console.error('移动端Web语音合成错误:', err);
+      
+      // 如果Web Speech API失败，尝试使用讯飞TTS作为备选
       try {
-        console.warn('移动端TTS失败，尝试使用讯飞TTS');
+        console.warn('移动端Web语音合成失败，尝试使用讯飞TTS');
         const voiceConfig = {
           vcn: 'x4_lingbosong',
           speed: 50,
@@ -294,7 +300,7 @@ const AIResponse: React.FC<AIResponseProps> = ({
       // 使用相同的语音处理逻辑
       if (isMobile) {
         handleMobileTTS(demoText).catch(err => {
-          console.error('演示模式下移动端TTS失败:', err);
+          console.error('演示模式下移动端语音合成失败:', err);
           setIsAnimating(false);
         });
       } else {
