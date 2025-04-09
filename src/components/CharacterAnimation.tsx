@@ -79,18 +79,20 @@ const CharacterAnimation: React.FC<CharacterAnimationProps> = ({
     console.log('CharacterAnimation - 动画状态变化:', isAnimating);
     
     if (isAnimating && response) {
-      // 保存响应文本，重置块索引
-      setFullText(response.trim());
+      const trimmedResponse = response.trim(); // 保存当前response的trimmed值
+      setFullText(trimmedResponse);
       setCurrentChunk(0);
       
-      console.log('文本已设置，开始滚动');
+      console.log('文本已设置，开始滚动, 文本长度:', trimmedResponse.length);
       
       // 直接使用周期性计时器
       const intervalId = setInterval(() => {
         setCurrentChunk(prev => {
-          const chunks = getTextChunks(response.trim());
+          const chunks = getTextChunks(trimmedResponse); // 使用局部变量而非response
+          console.log('当前块:', prev, '总块数:', chunks.length);
           // 如果已是最后一块，则停止
           if (prev >= chunks.length - 1) {
+            console.log('已到达最后一块，停止计时器');
             clearInterval(intervalId);
             return prev;
           }
