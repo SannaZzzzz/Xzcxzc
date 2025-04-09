@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 
 interface CharacterAnimationProps {
   character: string;
@@ -20,12 +20,10 @@ const CharacterAnimation: React.FC<CharacterAnimationProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const [videoAspectRatio, setVideoAspectRatio] = useState(16/9); // 默认视频比例
   
-  // 简化字幕状态 - 直接使用字数切割
+  // 超级简化字幕状态 - 直接使用数组显示文本的不同部分
   const [fullText, setFullText] = useState("");
-  const [currentPosition, setCurrentPosition] = useState(0);
-  const [displayText, setDisplayText] = useState("");
-  const timerId = useRef<NodeJS.Timeout | null>(null);
-  const CHARS_PER_STEP = 50; // 每次显示50个字
+  const [currentChunk, setCurrentChunk] = useState(0);
+  const CHUNK_SIZE = 30; // 每段30个字符
   
   // 检测移动设备
   useEffect(() => {
@@ -44,87 +42,73 @@ const CharacterAnimation: React.FC<CharacterAnimationProps> = ({
     };
   }, []);
 
-  // 初始化字幕显示
+  // 动态创建文本段落数组
+  const getTextChunks = useCallback((text: string): string[] => {
+    const chunks: string[] = [];
+    for (let i = 0; i < text.length; i += CHUNK_SIZE) {
+      chunks.push(text.substring(i, Math.min(i + CHUNK_SIZE, text.length)));
+    }
+    return chunks;
+  }, [CHUNK_SIZE]);
+  
+  // 获取当前应该显示的文本段落
+  const getCurrentText = useCallback(() => {
+    if (!fullText) return "";
+    const chunks = getTextChunks(fullText);
+    return chunks[currentChunk] || "";
+  }, [fullText, currentChunk, getTextChunks]);
+
+  // 移动到下一个文本块
+  const moveToNextChunk = useCallback(() => {
+    if (!fullText) return;
+    
+    const chunks = getTextChunks(fullText);
+    
+    if (currentChunk < chunks.length - 1) {
+      console.log(`移动到下一段: ${currentChunk} -> ${currentChunk + 1}`);
+      setCurrentChunk(prev => prev + 1);
+      return true;
+    } else {
+      console.log("已到达最后一段");
+      return false;
+    }
+  }, [fullText, currentChunk, getTextChunks]);
+
+  // 初始化字幕显示和滚动
   useEffect(() => {
-    console.log('CharacterAnimation组件 - AI响应变化');
-    console.log('- 动画状态:', isAnimating);
-    console.log('- 接收到响应长度:', response ? response.length : 0);
+    console.log('CharacterAnimation - 动画状态变化:', isAnimating);
     
     if (isAnimating && response) {
-      // 保存原始回答全文
-      const text = response.trim();
-      setFullText(text);
+      // 保存响应文本，重置块索引
+      setFullText(response.trim());
+      setCurrentChunk(0);
       
-      // 重置当前位置
-      setCurrentPosition(0);
+      console.log('文本已设置，开始滚动');
       
-      // 启动字幕滚动
-      if (text.length > 0) {
-        startTextDisplay();
-      }
+      // 直接使用周期性计时器
+      const intervalId = setInterval(() => {
+        setCurrentChunk(prev => {
+          const chunks = getTextChunks(response.trim());
+          // 如果已是最后一块，则停止
+          if (prev >= chunks.length - 1) {
+            clearInterval(intervalId);
+            return prev;
+          }
+          console.log(`字幕更新: ${prev} -> ${prev + 1}`);
+          return prev + 1;
+        });
+      }, 2000); // 每2秒滚动一次
+      
+      return () => {
+        console.log('清理计时器');
+        clearInterval(intervalId);
+      };
     } else {
-      // 停止显示
-      stopTextDisplay();
+      // 重置状态
       setFullText("");
-      setCurrentPosition(0);
-      setDisplayText("");
+      setCurrentChunk(0);
     }
-    
-    return () => {
-      stopTextDisplay();
-    };
-  }, [isAnimating, response]);
-  
-  // 启动字幕滚动 - 极简单可靠的实现
-  const startTextDisplay = () => {
-    // 清理现有计时器
-    stopTextDisplay();
-    
-    // 立即显示第一段
-    updateDisplayText();
-    
-    // 然后设置计时器，定时更新显示的文本
-    timerId.current = setInterval(() => {
-      updateDisplayText();
-    }, 3000); // 每3秒更新一次
-    
-    console.log("字幕滚动已启动");
-  };
-  
-  // 停止字幕显示
-  const stopTextDisplay = () => {
-    if (timerId.current) {
-      clearInterval(timerId.current);
-      timerId.current = null;
-      console.log("字幕滚动已停止");
-    }
-  };
-  
-  // 更新当前显示的文本段落
-  const updateDisplayText = () => {
-    if (fullText.length === 0) return;
-    
-    // 如果已经显示完全部文本，停止计时器
-    if (currentPosition >= fullText.length) {
-      stopTextDisplay();
-      return;
-    }
-    
-    // 计算当前要显示的文本片段
-    const endPosition = Math.min(currentPosition + CHARS_PER_STEP, fullText.length);
-    const textSegment = fullText.substring(currentPosition, endPosition);
-    
-    // 更新显示文本和位置
-    setDisplayText(textSegment);
-    setCurrentPosition(endPosition);
-    
-    console.log(`更新字幕: ${currentPosition}-${endPosition}/${fullText.length}`);
-    
-    // 如果已显示完全部文本，停止计时器
-    if (endPosition >= fullText.length) {
-      stopTextDisplay();
-    }
-  };
+  }, [isAnimating, response, getTextChunks]);
 
   // 视频加载与播放逻辑
   useEffect(() => {
@@ -301,27 +285,35 @@ const CharacterAnimation: React.FC<CharacterAnimationProps> = ({
     };
   }, [isAnimating, videoLoaded, isMobile, videoAspectRatio]);
 
-  // 计算进度百分比
-  const getProgressPercentage = () => {
-    if (fullText.length === 0) return 0;
-    return Math.min(100, (currentPosition / fullText.length) * 100);
+  // 计算当前进度
+  const getProgressPercentage = useCallback(() => {
+    if (!fullText) return 0;
+    const chunks = getTextChunks(fullText);
+    return Math.min(100, ((currentChunk + 1) / chunks.length) * 100);
+  }, [fullText, currentChunk, getTextChunks]);
+
+  // 手动前进按钮处理函数
+  const handleManualNext = () => {
+    moveToNextChunk();
   };
 
-  // 手动前进按钮
-  const handleManualProgress = () => {
-    updateDisplayText();
-  };
-
-  // 字幕显示组件
+  // 渲染字幕组件
   const renderSubtitle = () => {
-    if (!displayText) return null;
+    const currentText = getCurrentText();
+    if (!currentText) return null;
+    
+    // 获取文本段落总数
+    const totalChunks = getTextChunks(fullText).length;
     
     return (
       <div className="absolute bottom-4 left-2 right-2 flex flex-col items-center z-10">
         <div className="bg-black bg-opacity-85 text-white px-5 py-4 rounded-lg max-w-[95%] text-center border border-tech-blue border-opacity-50 shadow-lg">
           <p className="text-sm md:text-base font-medium leading-relaxed">
-            {displayText}
+            {currentText}
           </p>
+          <div className="text-xs text-gray-400 mt-1 opacity-80">
+            {`${currentChunk + 1}/${totalChunks}`}
+          </div>
         </div>
         
         {/* 进度条 */}
@@ -357,24 +349,25 @@ const CharacterAnimation: React.FC<CharacterAnimationProps> = ({
         </div>
       )}
       
-      {/* 调试显示 */}
-      {process.env.NODE_ENV !== 'production' && (
-        <div className="absolute top-1 right-1 bg-black bg-opacity-70 p-1 rounded text-xs text-gray-300 z-20">
-          <div>总字数: {fullText.length}</div>
-          <div>已显示: {currentPosition}</div>
-          <div>定时器: {timerId.current ? '活动' : '无'}</div>
+      {/* 手动前进按钮 - 放在字幕上方，绝对不会被遮挡 */}
+      {isAnimating && fullText && (
+        <div className="absolute top-2 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-70 p-2 rounded text-xs text-white z-30 flex space-x-2">
+          <button 
+            className="px-3 py-1 bg-blue-600 rounded text-white text-sm flex items-center space-x-1"
+            onClick={handleManualNext}
+          >
+            <span>下一段</span>
+            <span className="text-lg leading-none">→</span>
+          </button>
         </div>
       )}
       
-      {/* 手动前进按钮 */}
+      {/* 调试信息 */}
       {process.env.NODE_ENV !== 'production' && (
-        <div className="absolute top-10 right-1 bg-black bg-opacity-70 p-1 rounded text-xs text-white z-30">
-          <button 
-            className="px-2 py-1 bg-blue-600 rounded text-white text-xs"
-            onClick={handleManualProgress}
-          >
-            手动前进 →
-          </button>
+        <div className="absolute top-1 right-1 bg-black bg-opacity-70 p-1 rounded text-xs text-gray-300 z-20">
+          <div>总字数: {fullText.length}</div>
+          <div>当前段: {currentChunk + 1}/{getTextChunks(fullText).length}</div>
+          <div>动画状态: {isAnimating ? '播放中' : '暂停'}</div>
         </div>
       )}
       
