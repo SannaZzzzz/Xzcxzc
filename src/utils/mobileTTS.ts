@@ -56,15 +56,21 @@ class MobileTTS {
     };
   }
 
-  private async generateTTS(text: string): Promise<Response> {
-    const config = {
+  private async generateTTS(text: string, config?: TTSConfig): Promise<Response> {
+    const defaultConfig = {
       speed: 4,
       pitch: 5,
       volume: 5,
       person: 5003
     };
     
-    console.log('MobileTTS: 请求语音合成API', { text: text.substring(0, 20) + '...', config });
+    // 合并默认配置和用户配置
+    const finalConfig = {
+      ...defaultConfig,
+      ...config
+    };
+    
+    console.log('MobileTTS: 请求语音合成API', { text: text.substring(0, 20) + '...', config: finalConfig });
     
     return fetch('/api/tts/mobile', {
       method: 'POST',
@@ -73,12 +79,16 @@ class MobileTTS {
       },
       body: JSON.stringify({
         text,
-        ...config
+        ...finalConfig
       }),
     });
   }
 
-  public async speak(text: string, callbacks?: { onStart?: () => void; onEnd?: () => void }): Promise<void> {
+  public async speak(
+    text: string, 
+    config?: TTSConfig,
+    callbacks?: { onStart?: () => void; onEnd?: () => void }
+  ): Promise<void> {
     if (!text || text.length === 0) {
       console.warn('MobileTTS: 文本为空，跳过播放');
       callbacks?.onEnd?.();
@@ -91,7 +101,7 @@ class MobileTTS {
       // 避免重叠播放
       this.stop();
       
-      const res = await this.generateTTS(text);
+      const res = await this.generateTTS(text, config);
       console.log('MobileTTS: API响应', { status: res.status });
       
       if (!res.ok) {

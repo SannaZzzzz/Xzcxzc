@@ -50,15 +50,15 @@ const AIResponse: React.FC<AIResponseProps> = ({
     try {
       const mobileTTS = MobileTTS.getInstance();
       
-      // 不立即启动动画效果，等语音开始时才启动
-      // setIsAnimating(true);
-      
-      await mobileTTS.speak(text, {
+      // 适配接口参数，传入配置和回调
+      const config = {
         speed: 4,     // 调回默认语速，从5降为4
         pitch: 4,     // 音调，默认4
         volume: 5,    // 音量，默认5
         person: 5003  // 发音人，默认为度逍遥
-      }, {
+      };
+      
+      const callbacks = {
         onStart: () => {
           // 语音开始时才设置动画效果
           console.log('移动端语音合成开始播放');
@@ -69,43 +69,14 @@ const AIResponse: React.FC<AIResponseProps> = ({
           console.log('移动端语音合成播放结束');
           setIsAnimating(false);
         }
-      });
+      };
+      
+      // 使用新的参数结构调用speak方法
+      await mobileTTS.speak(text, config, callbacks);
     } catch (err: any) {
       console.error('移动端语音合成错误:', err);
-      
-      // 删除切换到讯飞TTS的逻辑
-      // 当百度语音合成失败时，直接结束动画
       console.error('百度语音合成失败，不再尝试其他服务');
       setIsAnimating(false);
-      
-      /* 删除以下代码
-      // 检查是否是API密钥配置问题
-      if (err.message && (
-        err.message.includes('缺少百度语音API密钥配置') || 
-        err.message.includes('服务器未正确配置语音合成服务')
-      )) {
-        console.warn('移动端TTS服务未正确配置，尝试使用讯飞TTS');
-      }
-      
-      // 如果移动端TTS失败，尝试使用讯飞TTS作为备选
-      try {
-        console.warn('移动端TTS失败，尝试使用讯飞TTS');
-        const voiceConfig = {
-          vcn: 'x4_lingbosong',
-          speed: 50,
-          pitch: 50,
-          volume: 50
-        };
-        
-        await xfyunTTS.startSynthesis(text, voiceConfig, {
-          onStart: () => setIsAnimating(true),
-          onEnd: () => setIsAnimating(false)
-        });
-      } catch (fallbackErr) {
-        console.error('备选语音合成也失败:', fallbackErr);
-        setIsAnimating(false);
-      }
-      */
     }
   };
 
@@ -300,7 +271,27 @@ const AIResponse: React.FC<AIResponseProps> = ({
     setTimeout(() => {
       // 使用相同的语音处理逻辑
       if (isMobile) {
-        handleMobileTTS(demoText).catch(err => {
+        // 为演示模式也传入正确的参数
+        const config = {
+          speed: 4,     // 调回默认语速
+          pitch: 4,     // 音调
+          volume: 5,    // 音量
+          person: 5003  // 发音人，默认为度逍遥
+        };
+        
+        const callbacks = {
+          onStart: () => {
+            console.log('演示模式移动端语音开始播放');
+            setIsAnimating(true);
+          },
+          onEnd: () => {
+            console.log('演示模式移动端语音播放结束');
+            setIsAnimating(false);
+          }
+        };
+        
+        // 直接使用mobileTTS.getInstance()调用，而不是通过handleMobileTTS
+        MobileTTS.getInstance().speak(demoText, config, callbacks).catch(err => {
           console.error('演示模式下移动端TTS失败:', err);
           setIsAnimating(false);
         });
