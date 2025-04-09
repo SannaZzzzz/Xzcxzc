@@ -20,8 +20,10 @@ const CharacterAnimation: React.FC<CharacterAnimationProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const [videoAspectRatio, setVideoAspectRatio] = useState(16/9); // 默认视频比例
   
-  // 简化字幕状态
-  const [currentText, setCurrentText] = useState("");
+  // 字幕状态
+  const [sentences, setSentences] = useState<string[]>([]);
+  const [currentSentenceIndex, setCurrentSentenceIndex] = useState(0);
+  const scrollTimerRef = useRef<NodeJS.Timeout | null>(null);
   
   // 检测移动设备
   useEffect(() => {
@@ -40,21 +42,97 @@ const CharacterAnimation: React.FC<CharacterAnimationProps> = ({
     };
   }, []);
 
-  // 根据响应和动画状态更新字幕
+  // 处理响应文本，分割成句子
   useEffect(() => {
     console.log('CharacterAnimation组件 - AI响应变化');
     console.log('- 动画状态:', isAnimating);
     console.log('- 接收到响应长度:', response ? response.length : 0);
     
     if (isAnimating && response) {
-      // 直接设置字幕文本
-      setCurrentText(response.trim());
-      console.log('- 已设置字幕文本');
+      const text = response.trim();
+      
+      // 分割成句子 - 按标点符号分割
+      const sentenceArray = splitTextIntoSentences(text);
+      console.log(`- 分割成 ${sentenceArray.length} 个句子`);
+      
+      // 保存分割后的句子
+      setSentences(sentenceArray);
+      
+      // 重置索引
+      setCurrentSentenceIndex(0);
+      
+      // 启动字幕滚动
+      startSubtitleScroll();
     } else {
-      // 清空字幕
-      setCurrentText("");
+      // 停止字幕滚动
+      stopSubtitleScroll();
+      
+      // 清空句子
+      setSentences([]);
+      setCurrentSentenceIndex(0);
     }
+    
+    // 组件卸载时清理
+    return () => {
+      stopSubtitleScroll();
+    };
   }, [isAnimating, response]);
+
+  // 分割文本成句子的函数
+  const splitTextIntoSentences = (text: string): string[] => {
+    if (!text) return [];
+    
+    // 按标点符号分割
+    const sentenceParts = text.split(/([。？！\.?!]\s*)/).filter(Boolean);
+    const result: string[] = [];
+    
+    // 将标点符号与前面的文本合并
+    for (let i = 0; i < sentenceParts.length; i += 2) {
+      const current = sentenceParts[i];
+      const punctuation = i + 1 < sentenceParts.length ? sentenceParts[i + 1] : '';
+      
+      if (current || punctuation) {
+        result.push((current || '') + (punctuation || ''));
+      }
+    }
+    
+    // 如果没有找到标点符号，则按长度分割（每25个字符）
+    if (result.length === 0) {
+      for (let i = 0; i < text.length; i += 25) {
+        const chunk = text.substring(i, Math.min(i + 25, text.length));
+        if (chunk.trim()) {
+          result.push(chunk.trim());
+        }
+      }
+    }
+    
+    return result;
+  };
+  
+  // 启动字幕滚动
+  const startSubtitleScroll = () => {
+    // 清除之前的定时器
+    stopSubtitleScroll();
+    
+    // 开启新的定时器，每隔一段时间滚动到下一句
+    scrollTimerRef.current = setInterval(() => {
+      setCurrentSentenceIndex(prev => {
+        // 如果已经到达最后，保持在最后
+        if (prev >= sentences.length - 2) {
+          return prev;
+        }
+        return prev + 1;
+      });
+    }, 3000); // 每3秒滚动一次
+  };
+  
+  // 停止字幕滚动
+  const stopSubtitleScroll = () => {
+    if (scrollTimerRef.current) {
+      clearInterval(scrollTimerRef.current);
+      scrollTimerRef.current = null;
+    }
+  };
 
   // 视频加载与播放逻辑
   useEffect(() => {
@@ -231,45 +309,43 @@ const CharacterAnimation: React.FC<CharacterAnimationProps> = ({
     };
   }, [isAnimating, videoLoaded, isMobile, videoAspectRatio]);
 
-  // 渲染字幕的辅助函数 - 确保适当的换行和格式化
+  // 获取当前要显示的句子（当前+下一句）
+  const getCurrentText = () => {
+    if (sentences.length === 0) return "";
+    
+    // 获取当前句子和下一句（如果有）
+    const current = sentences[currentSentenceIndex] || "";
+    const next = currentSentenceIndex + 1 < sentences.length ? sentences[currentSentenceIndex + 1] : "";
+    
+    // 组合当前和下一句
+    return current + (next ? " " + next : "");
+  };
+
+  // 渲染字幕组件
   const renderSubtitle = () => {
-    if (!currentText) return null;
+    const currentTextToShow = getCurrentText();
+    if (!currentTextToShow) return null;
     
-    // 按标点符号分割文本成更好阅读的段落
-    const paragraphs = [];
-    let currentParagraph = "";
-    let charCount = 0;
-    
-    // 按标点符号分割成句子
-    const sentences = currentText.split(/([。？！\.\?!]\s*)/).filter(Boolean);
-    
-    // 合并句子成段落 (每个段落不超过约40个字符)
-    for (const sentence of sentences) {
-      if (currentParagraph.length + sentence.length > 40 && currentParagraph) {
-        paragraphs.push(currentParagraph);
-        currentParagraph = sentence;
-      } else {
-        currentParagraph += sentence;
-      }
-    }
-    
-    // 添加最后一个段落
-    if (currentParagraph) {
-      paragraphs.push(currentParagraph);
-    }
-    
-    // 根据屏幕大小调整最大高度
-    const maxHeight = isMobile ? '60vh' : '40vh';
+    // 计算进度百分比
+    const progress = sentences.length > 0 ? Math.min(100, (currentSentenceIndex / (sentences.length - 1)) * 100) : 0;
     
     return (
-      <div className="absolute bottom-4 left-2 right-2 flex justify-center z-10">
-        <div className="bg-black bg-opacity-85 text-white px-5 py-4 rounded-lg max-w-[95%] text-center border border-tech-blue border-opacity-50 shadow-lg overflow-y-auto" style={{ maxHeight }}>
-          <div className="text-sm md:text-base font-medium leading-relaxed">
-            {paragraphs.map((paragraph, index) => (
-              <p key={index} className="mb-2">{paragraph}</p>
-            ))}
-          </div>
+      <div className="absolute bottom-4 left-2 right-2 flex flex-col items-center z-10">
+        <div className="bg-black bg-opacity-85 text-white px-5 py-4 rounded-lg max-w-[95%] text-center border border-tech-blue border-opacity-50 shadow-lg">
+          <p className="text-sm md:text-base font-medium leading-relaxed">
+            {currentTextToShow}
+          </p>
         </div>
+        
+        {/* 进度条 */}
+        {sentences.length > 2 && (
+          <div className="w-1/2 h-1 bg-gray-800 rounded-full mt-2 overflow-hidden">
+            <div 
+              className="h-full bg-tech-blue transition-all duration-300 rounded-full"
+              style={{ width: `${progress}%` }}
+            ></div>
+          </div>
+        )}
       </div>
     );
   };
@@ -299,8 +375,8 @@ const CharacterAnimation: React.FC<CharacterAnimationProps> = ({
       {/* 调试显示 */}
       {process.env.NODE_ENV !== 'production' && (
         <div className="absolute top-1 right-1 bg-black bg-opacity-70 p-1 rounded text-xs text-gray-300 z-20">
-          <div>响应长度: {response?.length || 0}</div>
-          <div>字幕长度: {currentText?.length || 0}</div>
+          <div>总句数: {sentences.length}</div>
+          <div>当前位置: {currentSentenceIndex + 1}/{sentences.length}</div>
         </div>
       )}
       
@@ -315,7 +391,7 @@ const CharacterAnimation: React.FC<CharacterAnimationProps> = ({
         className={`object-contain rounded-sm ${isMobile ? 'w-full h-auto' : ''}`}
       />
       
-      {/* 使用渲染函数显示字幕 */}
+      {/* 使用新的字幕滚动组件 */}
       {renderSubtitle()}
     </div>
   );
