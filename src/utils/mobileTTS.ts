@@ -58,8 +58,8 @@ class MobileTTS {
 
   private async generateTTS(text: string, config?: TTSConfig): Promise<Response> {
     const defaultConfig = {
-      speed: 4,
-      pitch: 5,
+      speed: 3,
+      pitch: 4,
       volume: 5,
       person: 5003
     };
