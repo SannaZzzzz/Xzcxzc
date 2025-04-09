@@ -342,19 +342,6 @@ const CharacterAnimation: React.FC<CharacterAnimationProps> = ({
         </div>
       )}
       
-      {/* 手动前进按钮 - 放在字幕上方，绝对不会被遮挡 */}
-      {isAnimating && fullText && (
-        <div className="absolute top-2 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-70 p-2 rounded text-xs text-white z-30 flex space-x-2">
-          <button 
-            className="px-3 py-1 bg-blue-600 rounded text-white text-sm flex items-center space-x-1"
-            onClick={handleManualNext}
-          >
-            <span>下一段</span>
-            <span className="text-lg leading-none">→</span>
-          </button>
-        </div>
-      )}
-      
       {/* 调试信息 */}
       {process.env.NODE_ENV !== 'production' && (
         <div className="absolute top-1 right-1 bg-black bg-opacity-70 p-1 rounded text-xs text-gray-300 z-20">
