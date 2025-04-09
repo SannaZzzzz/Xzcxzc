@@ -29,6 +29,19 @@ export default function Home() {
       window.removeEventListener('resize', handleResize);
     };
   }, []);
+  
+  // 监听AI回答变化，输出调试信息
+  useEffect(() => {
+    if (aiResponse) {
+      console.log('Home组件 - AI回答已更新:', aiResponse);
+    }
+  }, [aiResponse]);
+
+  // 当AI回答更新时，确保传递给CharacterAnimation组件
+  const handleAIResponse = (response: string) => {
+    console.log('收到AI回答:', response);
+    setAiResponse(response);
+  };
 
   return (
     <div className="min-h-screen bg-tech-dark text-white relative overflow-hidden">
@@ -115,7 +128,7 @@ export default function Home() {
 
               <AIResponse
                 userInput={userInput}
-                onResponse={setAiResponse}
+                onResponse={handleAIResponse}
                 character={character}
                 setIsAnimating={setIsAnimating}
               />
@@ -177,7 +190,7 @@ export default function Home() {
 
                   <AIResponse
                     userInput={userInput}
-                    onResponse={setAiResponse}
+                    onResponse={handleAIResponse}
                     character={character}
                     setIsAnimating={setIsAnimating}
                   />

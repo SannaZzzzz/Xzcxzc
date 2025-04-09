@@ -184,6 +184,7 @@ const AIResponse: React.FC<AIResponseProps> = ({
       const aiText = data.choices[0].message.content;
       
       // 更新响应
+      console.log('AI回答文本:', aiText);
       onResponse(aiText);
       
       // 根据设备类型选择不同的语音处理方式
@@ -283,9 +284,13 @@ const AIResponse: React.FC<AIResponseProps> = ({
       demoText = demoResponses[randomIndex] + " (演示模式)";
     }
     
+    // 确保演示响应被记录和正确传递
+    console.log('演示模式回答:', demoText);
+    
+    // 设置回复文本 - 先更新文本，然后才开始语音播放
+    onResponse(demoText);
+    
     setTimeout(() => {
-      onResponse(demoText);
-      
       // 使用相同的语音处理逻辑
       if (isMobile) {
         handleMobileTTS(demoText).catch(err => {
@@ -295,7 +300,7 @@ const AIResponse: React.FC<AIResponseProps> = ({
       } else {
         const voiceConfig = {
           vcn: 'x4_lingbosong',
-          speed: 50,
+          speed: 55,  // 稍微加快语速
           pitch: 50,
           volume: 50
         };
@@ -320,7 +325,7 @@ const AIResponse: React.FC<AIResponseProps> = ({
       }
       
       setIsProcessing(false);
-    }, 1500); // 模拟处理延迟
+    }, 500); // 添加短暂延迟，确保字幕系统有时间初始化
   };
 
   return (

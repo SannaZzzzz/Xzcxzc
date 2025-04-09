@@ -48,7 +48,14 @@ const CharacterAnimation: React.FC<CharacterAnimationProps> = ({
 
   // 响应变化时分割文本为句子
   useEffect(() => {
+    // 添加日志以检查接收到的response
+    console.log('CharacterAnimation - 收到的AI回答:', response);
+    
     if (response) {
+      // 确保清空之前的句子和状态
+      setSentences([]);
+      setCurrentText("");
+      
       // 改进的文本分割逻辑，更合理地处理不同标点符号的权重
       // 1. 先按照句号、问号、感叹号分割成主要句子
       // 2. 如果句子太长，再按照分号、逗号进行二次分割
@@ -112,6 +119,20 @@ const CharacterAnimation: React.FC<CharacterAnimationProps> = ({
         filteredSentences.push(tempSentence);
       }
       
+      // 如果没有标点符号，直接使用原始文本作为句子
+      if (filteredSentences.length === 0 && response.trim()) {
+        // 将长文本分成大约20-30字的片段
+        const maxLength = 25;
+        let remaining = response.trim();
+        
+        while (remaining.length > 0) {
+          const chunk = remaining.slice(0, maxLength);
+          filteredSentences.push(chunk);
+          remaining = remaining.slice(maxLength);
+        }
+      }
+      
+      console.log('处理后的字幕句子:', filteredSentences);
       setSentences(filteredSentences);
     } else {
       setSentences([]);
@@ -121,6 +142,7 @@ const CharacterAnimation: React.FC<CharacterAnimationProps> = ({
   // 处理动画状态变化
   useEffect(() => {
     isAnimatingRef.current = isAnimating;
+    console.log('动画状态变化:', isAnimating, '句子数量:', sentences.length);
     
     // 清除所有现有的计时器
     if (subtitleTimerRef.current) {
@@ -142,6 +164,7 @@ const CharacterAnimation: React.FC<CharacterAnimationProps> = ({
         // 等待一小段时间再显示第一句，模拟语音生成延迟
         setTimeout(() => {
           // 立即显示第一句，让字幕比语音快一步
+          console.log('显示第一句字幕:', sentences[0]);
           setCurrentText(sentences[0]);
           
           // 如果有多个句子，设置显示下一句的定时器
@@ -149,6 +172,7 @@ const CharacterAnimation: React.FC<CharacterAnimationProps> = ({
             // 从第二句开始设置合适的显示时间
             initialDelayRef.current = setTimeout(() => {
               sentenceIndexRef.current = 1;
+              console.log('显示第二句字幕:', sentences[1]);
               setCurrentText(sentences[1]);
               startSubtitleTimer(2); // 从第三句开始继续显示
             }, calculateDisplayTime(sentences[0]) * 0.7); // 缩短第一句显示时间
@@ -210,6 +234,7 @@ const CharacterAnimation: React.FC<CharacterAnimationProps> = ({
       const currentSentence = sentences[sentenceIndexRef.current];
       const displayTime = calculateDisplayTime(currentSentence);
       
+      console.log(`显示第${startIndex+1}句字幕: ${currentSentence} (显示时间: ${displayTime}ms)`);
       setCurrentText(currentSentence);
       
       // 设置下一句的定时器
@@ -222,6 +247,7 @@ const CharacterAnimation: React.FC<CharacterAnimationProps> = ({
         } else if (isAnimatingRef.current) {
           // 所有句子显示完毕，但动画仍在继续
           // 保持最后一句显示
+          console.log('所有字幕句子已显示完毕');
         } else {
           // 动画已停止
           setCurrentText("");
@@ -441,11 +467,11 @@ const CharacterAnimation: React.FC<CharacterAnimationProps> = ({
         className={`object-contain rounded-sm ${isMobile ? 'w-full h-auto' : ''}`}
       />
       
-      {/* 字幕区域 */}
+      {/* 字幕区域 - 修改样式以确保更好的可见性 */}
       {currentText && (
-        <div className="absolute bottom-4 left-0 right-0 flex justify-center">
-          <div className="bg-black bg-opacity-70 text-white px-4 py-2 rounded-lg max-w-[90%] text-center border border-tech-blue border-opacity-30 shadow-lg transform transition-opacity duration-300">
-            <p className="text-sm md:text-base">{currentText}</p>
+        <div className="absolute bottom-3 left-0 right-0 flex justify-center z-10">
+          <div className="bg-black bg-opacity-75 text-white px-4 py-2 rounded-lg max-w-[95%] text-center border border-tech-blue border-opacity-40 shadow-lg transform transition-opacity duration-300">
+            <p className="text-sm md:text-base font-medium">{currentText}</p>
           </div>
         </div>
       )}
