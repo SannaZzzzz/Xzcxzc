@@ -99,16 +99,7 @@ const CharacterAnimation: React.FC<CharacterAnimationProps> = ({
           console.log(`字幕更新: ${prev} -> ${prev + 1}`);
           return prev + 1;
         });
-      }, 6400); // 每6.4秒滚动一次
-      
-      return () => {
-        console.log('清理计时器');
-        clearInterval(intervalId);
-      };
-    } else {
-      // 重置状态
-      setFullText("");
-      setCurrentChunk(0);
+      }, 6600); // 每6.6秒滚动一次
     }
   }, [isAnimating, response, getTextChunks]);
 

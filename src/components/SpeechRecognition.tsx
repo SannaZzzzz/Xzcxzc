@@ -94,7 +94,6 @@ const SpeechRecognition: React.FC<SpeechRecognitionProps> = ({
           onStart: () => {
             console.log('百度语音识别已启动');
             setIsUsingBaidu(true);
-            setError('');
           },
           onResult: (text, isFinal) => {
             if (!isFinal) {
@@ -108,7 +107,7 @@ const SpeechRecognition: React.FC<SpeechRecognitionProps> = ({
               setTranscript(finalText);
               onResult(finalText);
             } else if (!finalText.trim()) {
-              setError('未能识别您的语音，请重试。');
+              console.log('语音无法识别到内容');
             }
             setIsListening(false);
           },
@@ -116,7 +115,8 @@ const SpeechRecognition: React.FC<SpeechRecognitionProps> = ({
             console.error('百度语音识别错误:', err);
             // 百度API失败，回退到Web Speech API
             setIsUsingBaidu(false);
-            setError('百度语音识别失败，正在尝试备用服务...');
+            // 删除错误提示，改为静默切换
+            console.log('静默切换到备用语音识别服务');
             
             // 延迟一点再尝试Web Speech API
             setTimeout(() => {
@@ -127,7 +127,9 @@ const SpeechRecognition: React.FC<SpeechRecognitionProps> = ({
       } catch (error) {
         console.error('启动百度语音识别失败:', error);
         setIsUsingBaidu(false);
-        // 百度API初始化失败，回退到Web Speech API
+        // 百度API初始化失败，静默回退到Web Speech API
+        // 不显示错误信息给用户
+        console.log('静默切换到备用语音识别服务');
         startWebSpeechRecognition();
       }
     } else {
@@ -146,7 +148,9 @@ const SpeechRecognition: React.FC<SpeechRecognitionProps> = ({
   const startWebSpeechRecognition = () => {
     // 检查Web Speech API支持
     if (!speechService.isSupported()) {
-      setError('您的浏览器不支持语音识别功能。请使用Chrome或Edge浏览器。');
+      console.error('浏览器不支持语音识别功能');
+      // 不在界面上显示错误信息
+      // setError('您的浏览器不支持语音识别功能。请使用Chrome或Edge浏览器。');
       setIsListening(false);
       return;
     }
@@ -168,7 +172,7 @@ const SpeechRecognition: React.FC<SpeechRecognitionProps> = ({
           setTranscript(finalText);
           onResult(finalText);
         } else if (!finalText.trim()) {
-          setError('未能识别您的语音，请重试。');
+          console.log('Web语音无法识别到内容');
         }
         setIsListening(false);
       },
@@ -176,7 +180,8 @@ const SpeechRecognition: React.FC<SpeechRecognitionProps> = ({
         if (err === 'no-speech') return;
         
         console.error('Web语音识别错误:', err);
-        setError(`语音识别错误: ${err}`);
+        // 不在界面上显示错误信息
+        // setError(`语音识别错误: ${err}`);
         setIsListening(false);
       }
     });
