@@ -169,15 +169,15 @@ const CharacterAnimation: React.FC<CharacterAnimationProps> = ({
           
           // 如果有多个句子，设置显示下一句的定时器
           if (sentences.length > 1) {
-            // 从第二句开始设置合适的显示时间
+            // 从第二句开始设置合适的显示时间，增加第一句显示时间比例
             initialDelayRef.current = setTimeout(() => {
               sentenceIndexRef.current = 1;
               console.log('显示第二句字幕:', sentences[1]);
               setCurrentText(sentences[1]);
               startSubtitleTimer(2); // 从第三句开始继续显示
-            }, calculateDisplayTime(sentences[0]) * 0.7); // 缩短第一句显示时间
+            }, calculateDisplayTime(sentences[0]) * 0.9); // 缩短比例从0.7调整到0.9，减慢速度
           }
-        }, 300); // 添加300ms的初始延迟，等待语音开始
+        }, 500); // 初始延迟从300ms增加到500ms
       }
     } else {
       // 停止动画时清除字幕
@@ -200,20 +200,22 @@ const CharacterAnimation: React.FC<CharacterAnimationProps> = ({
     // 中文语音合成大约每分钟300-400字，即每字约150-200ms
     // 标点符号也算作字符，但播放时有停顿
     
+    // 增加单字显示时间，使字幕滚动速度变慢
     // 根据文本长度动态调整单字时间：
-    // - 短句使用较长的单字时间(约200ms)，以便有足够停留时间
-    // - 长句使用较短的单字时间(约140ms)，避免字幕停留太久
-    let charTime = text.length < 10 ? 220 : 
-                  text.length < 20 ? 180 : 140;
+    // - 短句使用较长的单字时间(约320ms)，以便有足够停留时间
+    // - 长句使用较短的单字时间(约240ms)，避免字幕停留太久但仍然保持较慢速度
+    let charTime = text.length < 10 ? 320 : 
+                  text.length < 20 ? 280 : 240;
                   
     // 基础时间 + 增加标点符号的额外时间
     let punctuationCount = (text.match(/[。？！；，,\.?!]/g) || []).length;
-    let punctuationTime = punctuationCount * 200; // 每个标点符号增加200ms
+    let punctuationTime = punctuationCount * 300; // 每个标点符号增加300ms，原来是200ms
     
     const baseTime = text.length * charTime + punctuationTime;
     
     // 设置合理的最短和最长时间范围
-    return Math.max(800, Math.min(baseTime, 5000));
+    // 增加最短显示时间，确保短句也能有足够的停留时间
+    return Math.max(1500, Math.min(baseTime, 8000));
   };
 
   // 启动字幕显示定时器
