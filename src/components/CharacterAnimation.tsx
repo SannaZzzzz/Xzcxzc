@@ -20,14 +20,8 @@ const CharacterAnimation: React.FC<CharacterAnimationProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const [videoAspectRatio, setVideoAspectRatio] = useState(16/9); // 默认视频比例
   
-  // 字幕相关状态
-  const [currentText, setCurrentText] = useState("");  // 当前显示的文字
-  const [sentences, setSentences] = useState<string[]>([]);  // 所有分割的句子
-  const sentenceIndexRef = useRef(0);  // 当前显示的句子索引
-  const subtitleTimerRef = useRef<NodeJS.Timeout | null>(null);  // 字幕显示定时器
-  const progressRef = useRef<number>(0);  // 语音合成进度参考值
-  const isAnimatingRef = useRef(false);  // 保存动画状态的引用
-  const initialDelayRef = useRef<NodeJS.Timeout | null>(null); // 字幕初始延迟定时器
+  // 简化字幕状态，不使用定时器
+  const [currentText, setCurrentText] = useState("");
   
   // 检测移动设备
   useEffect(() => {
@@ -46,172 +40,25 @@ const CharacterAnimation: React.FC<CharacterAnimationProps> = ({
     };
   }, []);
 
-  // 响应变化时分割文本为句子
+  // 根据响应和动画状态更新字幕
   useEffect(() => {
-    // 添加日志以检查接收到的response
-    console.log('CharacterAnimation - 收到的AI回答:', response);
+    console.log('动画状态或响应变化:', isAnimating, response ? response.substring(0, 30) + '...' : '');
     
-    if (response) {
-      // 确保清空之前的句子和状态
-      setSentences([]);
-      setCurrentText("");
+    if (isAnimating && response) {
+      // 接收到响应且动画正在进行，显示字幕
       
-      // 文本分割逻辑 - 先按标点分句，然后再合并成适当长度的段落
+      // 简单格式化响应文本 - 去除多余空格等
+      const formattedText = response.trim();
       
-      // 句子分割点（各种标点符号）
-      const sentenceSplitRegex = /([。？！\.\?!])/g;
-      const tempSentences: string[] = [];
-      
-      // 按标点分句
-      if (response.match(sentenceSplitRegex)) {
-        // 有标点符号的情况
-        const parts = response.split(sentenceSplitRegex);
-        for (let i = 0; i < parts.length; i += 2) {
-          const text = parts[i];
-          const punctuation = i + 1 < parts.length ? parts[i + 1] : '';
-          
-          if ((text || punctuation)) {
-            const combinedText = (text || '') + (punctuation || '');
-            if (combinedText.trim()) {
-              tempSentences.push(combinedText.trim());
-            }
-          }
-        }
-      } else {
-        // 没有标点符号的情况
-        // 按固定长度分割成句子
-        const maxSentenceLength = 20; // 每个句子最多20个字符
-        let remaining = response.trim();
-        
-        while (remaining.length > 0) {
-          const chunk = remaining.slice(0, maxSentenceLength);
-          tempSentences.push(chunk);
-          remaining = remaining.slice(maxSentenceLength);
-        }
-      }
-      
-      console.log('分句结果:', tempSentences);
-      
-      // 将句子合并成段落，每段包含1-2个句子，但不超过30个字符
-      const paragraphs: string[] = [];
-      let currentParagraph = '';
-      
-      tempSentences.forEach((sentence, index) => {
-        if (!currentParagraph) {
-          // 开始新段落
-          currentParagraph = sentence;
-        } else if (currentParagraph.length + sentence.length <= 30) {
-          // 当前段落加上这个句子不超过30个字符，合并
-          currentParagraph += sentence;
-        } else {
-          // 当前段落加上这个句子超过30个字符，保存当前段落并开始新段落
-          paragraphs.push(currentParagraph);
-          currentParagraph = sentence;
-        }
-        
-        // 每两个句子强制形成一个段落
-        if ((index + 1) % 2 === 0 || index === tempSentences.length - 1) {
-          if (currentParagraph) {
-            paragraphs.push(currentParagraph);
-            currentParagraph = '';
-          }
-        }
-      });
-      
-      // 处理可能剩余的最后一个段落
-      if (currentParagraph) {
-        paragraphs.push(currentParagraph);
-      }
-      
-      console.log('最终段落结果:', paragraphs);
-      setSentences(paragraphs);
+      // 直接设置字幕文本
+      setCurrentText(formattedText);
     } else {
-      setSentences([]);
-    }
-  }, [response]);
-
-  // 处理动画状态变化
-  useEffect(() => {
-    isAnimatingRef.current = isAnimating;
-    console.log('动画状态变化:', isAnimating, '段落数量:', sentences.length);
-    
-    // 清除所有现有的计时器
-    if (subtitleTimerRef.current) {
-      clearTimeout(subtitleTimerRef.current);
-      subtitleTimerRef.current = null;
-    }
-    
-    if (initialDelayRef.current) {
-      clearTimeout(initialDelayRef.current);
-      initialDelayRef.current = null;
-    }
-    
-    if (isAnimating) {
-      // 重置字幕状态
-      sentenceIndexRef.current = 0;
-      
-      // 如果有段落要显示
-      if (sentences.length > 0) {
-        // 设置延迟显示第一个段落
-        setTimeout(() => {
-          displayNextSegment(0);
-        }, 500); // 延迟500ms开始显示
-      }
-    } else {
-      // 停止动画时清除字幕
+      // 如果动画未进行或没有响应，清空字幕
       setCurrentText("");
     }
-    
-    return () => {
-      if (subtitleTimerRef.current) {
-        clearTimeout(subtitleTimerRef.current);
-        subtitleTimerRef.current = null;
-      }
-      if (initialDelayRef.current) {
-        clearTimeout(initialDelayRef.current);
-        initialDelayRef.current = null;
-      }
-    };
-  }, [isAnimating, sentences]);
+  }, [isAnimating, response]);
 
-  // 显示下一个段落的函数
-  const displayNextSegment = (index: number) => {
-    // 防止索引越界
-    if (index >= sentences.length || !isAnimatingRef.current) {
-      return;
-    }
-    
-    // 显示当前段落
-    const currentSegment = sentences[index];
-    console.log(`显示段落 ${index+1}/${sentences.length}: ${currentSegment}`);
-    setCurrentText(currentSegment);
-    sentenceIndexRef.current = index;
-    
-    // 计算当前段落的显示时间
-    const displayTime = calculateDisplayTime(currentSegment);
-    
-    // 设置显示下一个段落的定时器
-    subtitleTimerRef.current = setTimeout(() => {
-      // 递增索引，显示下一个段落
-      displayNextSegment(index + 1);
-    }, displayTime);
-  };
-
-  // 估算每个段落的显示时间
-  const calculateDisplayTime = (text: string) => {
-    // 平衡的显示时间计算
-    // 基础时间 = 文本长度 * 每字时间
-    const charTime = 230; // 每字230ms
-    const baseTime = text.length * charTime;
-    
-    // 每个标点符号增加停顿时间
-    let punctuationCount = (text.match(/[。？！；，,\.?!]/g) || []).length;
-    let punctuationTime = punctuationCount * 200; // 每标点200ms
-    
-    // 最短2.2秒，最长6秒
-    return Math.max(2200, Math.min(baseTime + punctuationTime, 6000));
-  };
-
+  // 视频加载与播放逻辑维持不变
   useEffect(() => {
     const video = document.createElement("video");
     videoRef.current = video;
@@ -390,6 +237,41 @@ const CharacterAnimation: React.FC<CharacterAnimationProps> = ({
     };
   }, [isAnimating, videoLoaded, isMobile, videoAspectRatio]);
 
+  // 文本分段函数 - 仅用于格式化显示，不影响实际内容
+  const formatTextForDisplay = (text: string) => {
+    if (!text) return '';
+    
+    // 简单地添加换行，每隔约25-30个字符
+    const formatLength = 30;
+    let result = '';
+    
+    for (let i = 0; i < text.length; i += formatLength) {
+      // 尝试寻找附近的标点符号
+      let cutPoint = Math.min(i + formatLength, text.length);
+      
+      // 如果不是最后一段且不在标点符号处，尝试找附近的标点
+      if (cutPoint < text.length) {
+        // 向后找10个字符以内的标点
+        for (let j = cutPoint; j > Math.max(cutPoint - 10, i); j--) {
+          if ('。？！，；,.?!;'.includes(text[j])) {
+            cutPoint = j + 1; // 切在标点后面
+            break;
+          }
+        }
+      }
+      
+      // 添加这一段文本
+      result += text.substring(i, cutPoint);
+      
+      // 不是最后一段则添加换行
+      if (cutPoint < text.length) {
+        result += '\n';
+      }
+    }
+    
+    return result;
+  };
+
   return (
     <div ref={containerRef} className="relative w-full h-full flex items-center justify-center overflow-hidden">
       {!videoLoaded && (
@@ -423,11 +305,13 @@ const CharacterAnimation: React.FC<CharacterAnimationProps> = ({
         className={`object-contain rounded-sm ${isMobile ? 'w-full h-auto' : ''}`}
       />
       
-      {/* 字幕区域 - 优化样式以适应更多文本 */}
+      {/* 字幕区域 - 使用分段显示但无需定时器 */}
       {currentText && (
-        <div className="absolute bottom-3 left-0 right-0 flex justify-center z-10">
-          <div className="bg-black bg-opacity-80 text-white px-5 py-3 rounded-lg max-w-[90%] text-center border border-tech-blue border-opacity-40 shadow-lg transform transition-opacity duration-300">
-            <p className="text-sm md:text-base font-medium leading-relaxed">{currentText}</p>
+        <div className="absolute bottom-4 left-2 right-2 flex justify-center z-10">
+          <div className="bg-black bg-opacity-80 text-white px-4 py-3 rounded-lg max-w-[95%] text-center border border-tech-blue border-opacity-40 shadow-lg">
+            <p className="text-sm md:text-base font-medium leading-relaxed whitespace-pre-line">
+              {formatTextForDisplay(currentText)}
+            </p>
           </div>
         </div>
       )}
