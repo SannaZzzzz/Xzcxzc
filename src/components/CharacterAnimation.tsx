@@ -19,6 +19,14 @@ const CharacterAnimation: React.FC<CharacterAnimationProps> = ({
   const [isMobile, setIsMobile] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const [videoAspectRatio, setVideoAspectRatio] = useState(16/9); // 默认视频比例
+  
+  // 字幕相关状态
+  const [currentText, setCurrentText] = useState("");  // 当前显示的文字
+  const [sentences, setSentences] = useState<string[]>([]);  // 所有分割的句子
+  const sentenceIndexRef = useRef(0);  // 当前显示的句子索引
+  const subtitleTimerRef = useRef<NodeJS.Timeout | null>(null);  // 字幕显示定时器
+  const progressRef = useRef<number>(0);  // 语音合成进度参考值
+  const isAnimatingRef = useRef(false);  // 保存动画状态的引用
 
   // 检测移动设备
   useEffect(() => {
@@ -36,6 +44,92 @@ const CharacterAnimation: React.FC<CharacterAnimationProps> = ({
       window.removeEventListener('resize', handleResize);
     };
   }, []);
+
+  // 响应变化时分割文本为句子
+  useEffect(() => {
+    if (response) {
+      // 使用正则表达式分割句子：句号、问号、感叹号、分号、逗号后分割
+      const sentenceArray = response.split(/([。？！；，,\.?!])/g);
+      
+      // 将句子和标点符号组合回来
+      const combinedSentences: string[] = [];
+      for (let i = 0; i < sentenceArray.length; i += 2) {
+        const sentence = sentenceArray[i];
+        const punctuation = i + 1 < sentenceArray.length ? sentenceArray[i + 1] : '';
+        
+        if (sentence || punctuation) {
+          combinedSentences.push((sentence || '') + (punctuation || ''));
+        }
+      }
+      
+      // 过滤空句子
+      const filteredSentences = combinedSentences.filter(s => s.trim());
+      setSentences(filteredSentences);
+    } else {
+      setSentences([]);
+    }
+  }, [response]);
+
+  // 处理动画状态变化
+  useEffect(() => {
+    isAnimatingRef.current = isAnimating;
+    
+    if (isAnimating) {
+      // 重置字幕状态
+      sentenceIndexRef.current = 0;
+      progressRef.current = 0;
+      
+      if (sentences.length > 0) {
+        setCurrentText(sentences[0]);
+        startSubtitleTimer();
+      }
+    } else {
+      // 停止动画时清除字幕
+      if (subtitleTimerRef.current) {
+        clearTimeout(subtitleTimerRef.current);
+        subtitleTimerRef.current = null;
+      }
+      setCurrentText("");
+    }
+    
+    return () => {
+      if (subtitleTimerRef.current) {
+        clearTimeout(subtitleTimerRef.current);
+        subtitleTimerRef.current = null;
+      }
+    };
+  }, [isAnimating, sentences]);
+
+  // 启动字幕显示定时器
+  const startSubtitleTimer = () => {
+    // 估算每个句子的显示时间，根据句子长度和句子数量
+    const calculateDisplayTime = (text: string) => {
+      // 假设平均每个字符需要0.2秒，最少1秒，最多4秒
+      const baseTime = text.length * 200;
+      return Math.max(1000, Math.min(baseTime, 4000));
+    };
+    
+    if (subtitleTimerRef.current) {
+      clearTimeout(subtitleTimerRef.current);
+    }
+    
+    const currentSentence = sentences[sentenceIndexRef.current];
+    const displayTime = calculateDisplayTime(currentSentence);
+    
+    subtitleTimerRef.current = setTimeout(() => {
+      sentenceIndexRef.current++;
+      
+      if (sentenceIndexRef.current < sentences.length && isAnimatingRef.current) {
+        setCurrentText(sentences[sentenceIndexRef.current]);
+        startSubtitleTimer(); // 递归调用，显示下一句
+      } else {
+        // 所有句子显示完毕，或动画已停止
+        if (!isAnimatingRef.current) {
+          setCurrentText("");
+        }
+      }
+    }, displayTime);
+  };
 
   useEffect(() => {
     const video = document.createElement("video");
@@ -248,9 +342,12 @@ const CharacterAnimation: React.FC<CharacterAnimationProps> = ({
         className={`object-contain rounded-sm ${isMobile ? 'w-full h-auto' : ''}`}
       />
       
-      {isAnimating && (
-        <div className="absolute bottom-4 left-4 right-4 bg-tech-dark bg-opacity-80 backdrop-filter backdrop-blur-sm p-2 rounded-md border border-tech-blue border-opacity-30 shadow-neon">
-          <p className="text-sm md:text-base text-gray-200">{response}</p>
+      {/* 字幕区域 */}
+      {currentText && (
+        <div className="absolute bottom-4 left-0 right-0 flex justify-center">
+          <div className="bg-black bg-opacity-70 text-white px-4 py-2 rounded-lg max-w-[90%] text-center border border-tech-blue border-opacity-30 shadow-lg transform transition-opacity duration-300">
+            <p className="text-sm md:text-base">{currentText}</p>
+          </div>
         </div>
       )}
     </div>

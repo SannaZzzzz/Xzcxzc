@@ -49,14 +49,25 @@ const AIResponse: React.FC<AIResponseProps> = ({
   const handleMobileTTS = async (text: string) => {
     try {
       const mobileTTS = MobileTTS.getInstance();
+      
+      // 启动动画效果和字幕显示
+      setIsAnimating(true);
+      
       await mobileTTS.speak(text, {
         speed: 4,     // 语速，默认4
         pitch: 4,     // 音调，默认4
         volume: 5,    // 音量，默认5
         person: 5003  // 发音人，默认为度逍遥
       }, {
-        onStart: () => setIsAnimating(true),
-        onEnd: () => setIsAnimating(false)
+        onStart: () => {
+          // 语音开始时已经设置了动画效果
+          console.log('移动端语音合成开始播放');
+        },
+        onEnd: () => {
+          // 语音播放结束时结束动画
+          console.log('移动端语音合成播放结束');
+          setIsAnimating(false);
+        }
       });
     } catch (err: any) {
       console.error('移动端语音合成错误:', err);
@@ -68,8 +79,6 @@ const AIResponse: React.FC<AIResponseProps> = ({
       )) {
         console.warn('移动端TTS服务未正确配置，尝试使用讯飞TTS');
       }
-      
-      setIsAnimating(false);
       
       // 如果移动端TTS失败，尝试使用讯飞TTS作为备选
       try {
@@ -189,11 +198,17 @@ const AIResponse: React.FC<AIResponseProps> = ({
             volume: 50
           };
           
+          // 启动动画效果和字幕显示
+          setIsAnimating(true);
+          
           await xfyunTTS.startSynthesis(aiText, voiceConfig, {
             onStart: () => {
-              setIsAnimating(true);
+              // 语音开始时已经设置了动画效果
+              console.log('语音合成开始播放');
             },
             onEnd: () => {
+              // 语音播放结束时结束动画
+              console.log('语音合成播放结束');
               setIsAnimating(false);
             }
           });
@@ -269,7 +284,7 @@ const AIResponse: React.FC<AIResponseProps> = ({
     setTimeout(() => {
       onResponse(demoText);
       
-      // 语音播报
+      // 使用相同的语音处理逻辑
       if (isMobile) {
         handleMobileTTS(demoText).catch(err => {
           console.error('演示模式下移动端TTS失败:', err);
@@ -283,9 +298,17 @@ const AIResponse: React.FC<AIResponseProps> = ({
           volume: 50
         };
         
+        // 启动动画效果和字幕显示，直接使用setIsAnimating，后面语音播放器会处理onStart和onEnd事件
+        setIsAnimating(true);
+        
         xfyunTTS.startSynthesis(demoText, voiceConfig, {
-          onStart: () => setIsAnimating(true),
-          onEnd: () => setIsAnimating(false)
+          onStart: () => {
+            console.log('演示模式语音开始播放');
+          },
+          onEnd: () => {
+            console.log('演示模式语音播放结束');
+            setIsAnimating(false);
+          }
         }).catch(err => {
           console.error('演示模式下语音合成错误:', err);
           setIsAnimating(false);
