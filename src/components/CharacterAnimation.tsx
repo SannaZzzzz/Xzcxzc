@@ -24,6 +24,7 @@ const CharacterAnimation: React.FC<CharacterAnimationProps> = ({
   const [sentences, setSentences] = useState<string[]>([]);
   const [currentSentenceIndex, setCurrentSentenceIndex] = useState(0);
   const scrollTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isAnimatingRef = useRef(false); // 保存动画状态的引用，用于定时器
   
   // 检测移动设备
   useEffect(() => {
@@ -48,6 +49,9 @@ const CharacterAnimation: React.FC<CharacterAnimationProps> = ({
     console.log('- 动画状态:', isAnimating);
     console.log('- 接收到响应长度:', response ? response.length : 0);
     
+    // 保存动画状态的引用
+    isAnimatingRef.current = isAnimating;
+    
     if (isAnimating && response) {
       const text = response.trim();
       
@@ -61,8 +65,10 @@ const CharacterAnimation: React.FC<CharacterAnimationProps> = ({
       // 重置索引
       setCurrentSentenceIndex(0);
       
-      // 启动字幕滚动
-      startSubtitleScroll();
+      // 启动字幕滚动 - 延迟一点启动，确保状态已更新
+      setTimeout(() => {
+        startSubtitleScroll();
+      }, 100);
     } else {
       // 停止字幕滚动
       stopSubtitleScroll();
@@ -106,33 +112,61 @@ const CharacterAnimation: React.FC<CharacterAnimationProps> = ({
       }
     }
     
+    console.log("分割的句子:", result);
     return result;
   };
   
-  // 启动字幕滚动
+  // 启动字幕滚动 - 改进版，确保能够工作
   const startSubtitleScroll = () => {
     // 清除之前的定时器
     stopSubtitleScroll();
     
-    // 开启新的定时器，每隔一段时间滚动到下一句
-    scrollTimerRef.current = setInterval(() => {
+    console.log("启动字幕滚动 - 总句数:", sentences.length);
+    
+    if (sentences.length <= 1) {
+      console.log("句子数量太少，不启动滚动");
+      return; // 如果只有一个句子，不需要滚动
+    }
+    
+    // 使用React状态更新来触发滚动
+    const doScroll = () => {
+      if (!isAnimatingRef.current) {
+        console.log("动画已停止，取消滚动");
+        stopSubtitleScroll();
+        return;
+      }
+      
       setCurrentSentenceIndex(prev => {
-        // 如果已经到达最后，保持在最后
-        if (prev >= sentences.length - 2) {
-          return prev;
-        }
-        return prev + 1;
+        const nextIndex = prev >= sentences.length - 2 ? prev : prev + 1;
+        console.log(`字幕滚动: ${prev} -> ${nextIndex}, 总句数: ${sentences.length}`);
+        return nextIndex;
       });
-    }, 3000); // 每3秒滚动一次
+      
+      // 继续滚动，直到到达最后
+      if (currentSentenceIndex < sentences.length - 2) {
+        scrollTimerRef.current = setTimeout(doScroll, 2500); // 每2.5秒滚动一次
+      } else {
+        console.log("已滚动到最后，停止");
+      }
+    };
+    
+    // 开始第一次滚动
+    scrollTimerRef.current = setTimeout(doScroll, 2500);
   };
   
   // 停止字幕滚动
   const stopSubtitleScroll = () => {
+    console.log("停止字幕滚动");
     if (scrollTimerRef.current) {
-      clearInterval(scrollTimerRef.current);
+      clearTimeout(scrollTimerRef.current);
       scrollTimerRef.current = null;
     }
   };
+
+  // 在currentSentenceIndex变化时记录
+  useEffect(() => {
+    console.log(`字幕索引变化: ${currentSentenceIndex}/${sentences.length}`);
+  }, [currentSentenceIndex, sentences.length]);
 
   // 视频加载与播放逻辑
   useEffect(() => {
@@ -327,7 +361,8 @@ const CharacterAnimation: React.FC<CharacterAnimationProps> = ({
     if (!currentTextToShow) return null;
     
     // 计算进度百分比
-    const progress = sentences.length > 0 ? Math.min(100, (currentSentenceIndex / (sentences.length - 1)) * 100) : 0;
+    const progress = sentences.length > 1 ? 
+      Math.min(100, (currentSentenceIndex / Math.max(1, sentences.length - 2)) * 100) : 0;
     
     return (
       <div className="absolute bottom-4 left-2 right-2 flex flex-col items-center z-10">
@@ -348,6 +383,38 @@ const CharacterAnimation: React.FC<CharacterAnimationProps> = ({
         )}
       </div>
     );
+  };
+
+  // 创建一个手动按钮来测试字幕滚动功能
+  const renderDebugControls = () => {
+    if (process.env.NODE_ENV !== 'production') {
+      return (
+        <div className="absolute top-10 right-1 bg-black bg-opacity-70 p-1 rounded text-xs text-white z-30 flex flex-col gap-1">
+          <button 
+            className="px-2 py-1 bg-blue-600 rounded text-white text-xs"
+            onClick={() => {
+              // 手动前进一句
+              setCurrentSentenceIndex(prev => 
+                Math.min(sentences.length - 1, prev + 1)
+              );
+            }}
+          >
+            下一句 →
+          </button>
+          <button 
+            className="px-2 py-1 bg-green-600 rounded text-white text-xs"
+            onClick={() => {
+              // 手动重置滚动
+              setCurrentSentenceIndex(0);
+              startSubtitleScroll();
+            }}
+          >
+            重置滚动
+          </button>
+        </div>
+      );
+    }
+    return null;
   };
 
   return (
@@ -377,8 +444,12 @@ const CharacterAnimation: React.FC<CharacterAnimationProps> = ({
         <div className="absolute top-1 right-1 bg-black bg-opacity-70 p-1 rounded text-xs text-gray-300 z-20">
           <div>总句数: {sentences.length}</div>
           <div>当前位置: {currentSentenceIndex + 1}/{sentences.length}</div>
+          <div>定时器状态: {scrollTimerRef.current ? '活动' : '无'}</div>
         </div>
       )}
+      
+      {/* 添加调试控制按钮 */}
+      {renderDebugControls()}
       
       {/* 装饰性科技边角 */}
       <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-tech-blue opacity-70"></div>
