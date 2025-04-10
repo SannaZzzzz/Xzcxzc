@@ -257,7 +257,7 @@ const AIResponse: React.FC<AIResponseProps> = ({
     } else {
       // 随机选择
       const randomIndex = Math.floor(Math.random() * demoResponses.length);
-      demoText = demoResponses[randomIndex] + " (演示模式)";
+      demoText = demoResponses[randomIndex] ;
     }
     
     // 确保演示响应被记录和正确传递
